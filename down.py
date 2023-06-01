@@ -1,10 +1,10 @@
 import json
 import cv2
 import base64
+import math
 import numpy as np
 import requests
 import time
-
 
 # load config
 with open('roboflow_config.json') as f:
@@ -25,13 +25,14 @@ upload_url = "".join([
     ROBOFLOW_MODEL,
     "?api_key=",
     ROBOFLOW_API_KEY,
-    "&format=json", # Change to json if you want the prediction boxes, not the visualization
+    "&format=json",  # Change to json if you want the prediction boxes, not the visualization
     "&stroke=5"
 ])
 
 # Get webcam interface via opencv-python
 # Replace with path to video file
 video = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+
 
 # Infer via the Roboflow Infer API and return the result
 def infer():
@@ -55,21 +56,22 @@ def infer():
     predictions = resp.json()
     detections = predictions['predictions']
 
-    # Parse result image
-    # image = np.asarray(bytearray(resp.read()), dtype="uint8")
-    # image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+    robot_center = None
+    arrow_center = None
+    angle_deg = None
+    color = (0, 0, 255)
 
-    # Add predictions (bounding box, class label and confidence score) to image
+    # Parse result image and calculate angle
     for bounding_box in detections:
         x0 = bounding_box['x'] - bounding_box['width'] / 2
         x1 = bounding_box['x'] + bounding_box['width'] / 2
         y0 = bounding_box['y'] - bounding_box['height'] / 2
         y1 = bounding_box['y'] + bounding_box['height'] / 2
+        center_x = (x0 + x1) / 2
+        center_y = (y0 + y1) / 2
         class_name = bounding_box['class']
         confidence = bounding_box['confidence']
-        # position coordinates: start = (x0, y0), end = (x1, y1)
-        # color = RGB-value for bounding box color, (0,0,0) is "black"
-        # thickness = stroke width/thickness of bounding box
+
         start_point = (int(x0), int(y0))
         end_point = (int(x1), int(y1))
         # draw/place bounding boxes on image
@@ -88,26 +90,48 @@ def infer():
                     text_location, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7,
                     color=(255,255,255), thickness=2)
 
-    return img, detections
+        if class_name == 'Robot':
+            robot_center = (center_x, center_y)
+            color = (0, 255, 0)  # Green for robot
+
+        elif class_name == 'Front':
+            arrow_center = (center_x, center_y)
+            color = (0, 0, 255)  # Red for front
+
+    if robot_center and arrow_center:
+        # calculate differences in x and y coordinates
+        diff_x = arrow_center[0] - robot_center[0]
+        diff_y = arrow_center[1] - robot_center[1]
+
+        # calculate angle in radians
+        angle_rad = math.atan2(-diff_y, diff_x)
+
+        # convert angle to degrees
+        angle_deg = (math.degrees(angle_rad) + 360) % 360
+
+        print("Robot is facing at angle:", angle_deg, "degrees")
+
+    return img, detections, angle_deg
 
 
 # Main loop; infers sequentially until you press "q"
 while 1:
     # On "q" keypress, exit
-    if(cv2.waitKey(1) == ord('q')):
+    if (cv2.waitKey(1) == ord('q')):
         break
 
     # Capture start time to calculate fps
     start = time.time()
 
     # Synchronously get a prediction from the Roboflow Infer API
-    image, detections = infer()
+    image, detections, angle_deg = infer()
     # And display the inference results
     cv2.imshow('image', image)
 
     # Print frames per second
-    print((1/(time.time()-start)), " fps")
+    print((1 / (time.time() - start)), " fps")
     print(detections)
+    print(angle_deg)
 
 # Release resources when finished
 video.release()
