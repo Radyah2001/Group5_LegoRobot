@@ -1,5 +1,7 @@
 # load config
 import json
+import socket
+
 with open('roboflow_config.json') as f:
     config = json.load(f)
 
@@ -30,6 +32,16 @@ upload_url = "".join([
 
 # Get webcam interface via opencv-python
 video = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+
+
+# Create connection with robot
+host = "192.168.43.168"  # get local machine name
+port = 1060  # Make sure it's within the > 1024 $$ <65535 range
+
+s = socket.socket()
+s.connect((host, port))
+
+angle_deg = None
 
 # Infer via the Roboflow Infer API and return the result
 # Takes an httpx.AsyncClient as a parameter
@@ -70,6 +82,12 @@ async def main():
             # On "q" keypress, exit
             if(cv2.waitKey(1) == ord('q')):
                 break
+            if (cv2.waitKey(1) == ord('t')):
+                message = "RIGHT 100"
+                s.send(message.encode('utf-8'))
+            if (cv2.waitKey(1) == ord('p')):
+                message = "STOP"
+                s.send(message.encode('utf-8'))
 
             # Throttle to FRAMERATE fps and print actual frames per second achieved
             elapsed = time.time() - last_frame
@@ -97,3 +115,4 @@ asyncio.run(main())
 # Release resources when finished
 video.release()
 cv2.destroyAllWindows()
+s.close()
