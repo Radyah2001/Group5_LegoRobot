@@ -5,6 +5,7 @@ import math
 import numpy as np
 import requests
 import time
+import socket
 
 # load config
 with open('roboflow_config.json') as f:
@@ -115,11 +116,21 @@ def infer():
 
 
 # Main loop; infers sequentially until you press "q"
+host = "192.168.43.168"  # get local machine name
+port = 1060  # Make sure it's within the > 1024 $$ <65535 range
+
+s = socket.socket()
+s.connect((host, port))
+
 while 1:
     # On "q" keypress, exit
     if (cv2.waitKey(1) == ord('q')):
         break
 
+    if (cv2.waitKey(1) == ord('p')):
+        message = "RIGHT 100"
+        s.send(message.encode('utf-8'))
+        data = s.recv(1024).decode('utf-8')
     # Capture start time to calculate fps
     start = time.time()
 
@@ -132,7 +143,14 @@ while 1:
     print((1 / (time.time() - start)), " fps")
     print(detections)
     print(angle_deg)
+    target_angle = 100
+    if(angle_deg < target_angle+5 and angle_deg > target_angle-5):
+        message = "STOP"
+        s.send(message.encode('utf-8'))
+        data = s.recv(1024).decode('utf-8')
+
 
 # Release resources when finished
 video.release()
 cv2.destroyAllWindows()
+s.close()
