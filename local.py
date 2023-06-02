@@ -1,10 +1,21 @@
 from ultralytics import YOLO
 import cv2
 
+# load config
+import json
+with open('VideoSourceConfig.json') as f:
+    config = json.load(f)
+
 # Load a model
 model = YOLO("res/best.pt")  # load a pretrained model
 
-video = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+
+INPUT_SOURCE = config["InputSource"]
+CONF = config["CONF"]
+IOU = config["IOU"]
+
+
+video = cv2.VideoCapture(INPUT_SOURCE, cv2.CAP_DSHOW)
 
 # Loop through the video frames
 while video.isOpened():
@@ -13,7 +24,7 @@ while video.isOpened():
 
     if success:
         # Run YOLOv8 inference on the frame
-        results = model(frame)
+        results = model(frame, conf=CONF, iou=IOU)
 
         # Visualize the results on the frame
         annotated_frame = results[0].plot()
