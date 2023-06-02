@@ -24,12 +24,48 @@ upload_url = "".join([
     ROBOFLOW_MODEL,
     "?api_key=",
     ROBOFLOW_API_KEY,
-    "&format=image", # Change to json if you want the prediction boxes, not the visualization
+    "&format=json",  # Change from image to json
     "&stroke=5"
 ])
 
 # Get webcam interface via opencv-python
 video = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+
+# This function maps a point in the image to a point in the 2D coordinate system
+def map_point(point, homography_matrix):
+    """
+    point: a tuple (x, y) representing the point in the image
+    homography_matrix: the homography matrix obtained from cv2.findHomography
+    """
+    point = np.array([[point]], dtype='float32')
+    mapped_point = cv2.perspectiveTransform(point, homography_matrix)
+    return (mapped_point[0][0][0], mapped_point[0][0][1])
+
+# These are the corners of the course in the image, obtained using your object detection model
+# You need to replace these with the actual values
+image_points = np.float32([
+    [x1, y1],  # top-left corner
+    [x2, y2],  # top-right corner
+    [x3, y3],  # bottom-right corner
+    [x4, y4],  # bottom-left corner
+])
+
+# These are the corners of the course in the 2D coordinate system
+course_points = np.float32([
+    [0, 0],             # top-left corner (0, 0)
+    [180, 0],           # top-right corner (180, 0)
+    [180, 120],         # bottom-right corner (180, 120)
+    [0, 120],           # bottom-left corner (0, 120)
+])
+
+# Compute the homography matrix
+H, mask = cv2.findHomography(image_points, course_points)
+
+# Now you can map any point in the image to a point in the 2D coordinate system
+# For example, to map the center of the robot (replace with actual values)
+robot_center_image = (x_robot, y_robot)
+robot_center_course = map_point(robot_center_image, H)
+
 
 # Infer via the Roboflow Infer API and return the result
 # Takes an httpx.AsyncClient as a parameter
@@ -51,11 +87,31 @@ async def infer(requests):
         "Content-Type": "application/x-www-form-urlencoded"
     })
 
-    # Parse result image
-    image = np.asarray(bytearray(resp.content), dtype="uint8")
-    image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+    # Parse result into JSON
+    data = resp.json()
 
-    return image
+    # Extract detections
+    detections = data['predictions']
+
+    corners = []
+    robot_center = None
+
+    for detection in detections:
+        class_name = detection['class']
+        box = detection['bbox']
+        center = ((box['left'] + box['width'] / 2), (box['top'] + box['height'] / 2))
+
+        if class_name == 'Corner':
+            corners.append(center)
+        elif class_name == 'Robot':
+            robot_center = center
+
+    # Sort corners based on their coordinates to match the ordering in course_points
+    corners = sorted(corners, key=lambda point: (-point[1], point[0]))
+
+    # Now corners contains the center points of the corners and robot_center is the center point of the robot
+
+    return img
 
 # Main loop; infers at FRAMERATE frames per second until you press "q"
 async def main():

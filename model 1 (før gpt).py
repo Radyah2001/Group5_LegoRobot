@@ -37,6 +37,8 @@ cell_size = 50  # This value can be adjusted. About 50 seems to be a good fit fo
 
 # This function maps a bounding box in pixel coordinates to a grid system. For each bounding box, it calculates which
 # grid cells it intersects with and returns a list of those grid cell coordinates.
+# This map_to_grid function allow an object to belong to multiple cells.
+'''
 def map_to_grid(img_height, img_width, cell_size, bounding_box):
     # Unpack the bounding box coordinates
     x, y, width, height = bounding_box
@@ -72,8 +74,69 @@ def map_to_grid(img_height, img_width, cell_size, bounding_box):
 
     # Finally, we return the list of grid cells that intersect with the bounding box
     return cells
+'''
+# This map_to_grid function is for the middle of the bounding box that determines
+# which cell an object belongs to, i.e. an object can only belong to one cell.
+def map_to_grid(img_height, img_width, cell_size, bounding_box):
+    # Unpack the bounding box coordinates
+    x, y, width, height = bounding_box
 
+    # Pad the image size to be a multiple of cell_size
+    padded_img_width = ((img_width - 1) // cell_size + 1) * cell_size
+    padded_img_height = ((img_height - 1) // cell_size + 1) * cell_size
 
+    # Calculate the total number of cells in the grid along the width and height of the image
+    grid_width = padded_img_width // cell_size
+    grid_height = padded_img_height // cell_size
+
+    # Calculate the grid cell coordinates for the center of the bounding box
+    center_x = (x + width / 2) // cell_size
+    center_y = (y + height / 2) // cell_size
+
+    # We must ensure that the calculated grid coordinates don't exceed the grid's boundaries
+    # If they do, we cap them at the maximum allowed coordinate which is grid size - 1
+    center_x = max(0, min(grid_width - 1, center_x))
+    center_y = max(0, min(grid_height - 1, center_y))
+
+    # Return the grid cell of the center of the bounding box
+    return int(center_x), int(center_y)
+
+# Dictionary to hold our detected objects
+objects = {
+    'Bounds': [],
+    'Corner': [],
+    'Cross': None,
+    'Ball white': [],
+    'Robot': None,
+    'Front': None,
+    'Back': None
+}
+
+def process_predictions(predictions, image_size):
+    # clear the previous frame's predictions
+    for label in objects:
+        if isinstance(objects[label], list):
+            objects[label].clear()
+
+    for prediction in predictions:
+        label = prediction['class']
+        if label in objects:
+            # Rescale the bounding box coordinates
+            x = int(prediction['x'] * image_size['width'])
+            y = int(prediction['y'] * image_size['height'])
+            width = int(prediction['width'] * image_size['width'])
+            height = int(prediction['height'] * image_size['height'])
+            box = (x, y, width, height)
+
+            # map the bounding box to the grid
+            cell = map_to_grid(ROBOFLOW_SIZE, ROBOFLOW_SIZE, cell_size, box)
+
+            if label in ['Robot', 'Front', 'Back', 'Cross']:
+                # These are unique, so we don't need a list
+                objects[label] = cell
+            else:
+                # Add the cell to the list
+                objects[label].append(cell)
 
 # Infer via the Roboflow Infer API and return the result
 async def infer(requests):
@@ -100,6 +163,9 @@ async def infer(requests):
     # Now `json_data` contains the data from the response, including bounding box information
     # The exact structure of the JSON data will depend on the API, but it will generally include
     # the class, score, and bounding box coordinates for each detected object.
+
+    # Process the predictions
+    process_predictions(json_data['predictions'], json_data['image'])
 
     for prediction in json_data['predictions']:
         x = int(prediction['x'])

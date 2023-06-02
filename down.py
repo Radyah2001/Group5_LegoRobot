@@ -31,7 +31,7 @@ upload_url = "".join([
 
 # Get webcam interface via opencv-python
 # Replace with path to video file
-video = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+video = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 # Infer via the Roboflow Infer API and return the result
 def infer():

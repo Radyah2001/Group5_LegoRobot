@@ -92,7 +92,7 @@ async def infer(requests):
     # Get prediction from Roboflow Infer API
     resp = await requests.post(upload_url, data=img_str, headers={
         "Content-Type": "application/x-www-form-urlencoded"
-    })
+    }, timeout=30.0)  # 30 second timeout
 
     # Parse JSON result
     json_data = resp.json()
