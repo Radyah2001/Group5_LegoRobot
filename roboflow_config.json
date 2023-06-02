@@ -1,8 +1,8 @@
 {
   "ROBOFLOW_API_KEY": "cl34nreOJIaV0Dj3jYng",
   "ROBOFLOW_MODEL": "ping-pong-finder-w6mxk/9",
-  "ROBOFLOW_SIZE": 1280,
+  "ROBOFLOW_SIZE": 720,
 
-  "FRAMERATE": 60,
+  "FRAMERATE": 30,
   "BUFFER": 0.5
 }

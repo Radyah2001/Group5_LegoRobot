@@ -60,6 +60,9 @@ def infer():
     arrow_center = None
     angle_deg = None
     color = (0, 0, 255)
+    # Variables to store the closest ball and its distance to the robot
+    closest_ball = None
+    closest_ball_distance = float('inf')
 
     # Parse result image and calculate angle
     for bounding_box in detections:
@@ -98,6 +101,15 @@ def infer():
             arrow_center = (center_x, center_y)
             color = (0, 0, 255)  # Red for front
 
+        elif class_name in ['Ball white', 'Ball orange']:
+            # Calculate the Euclidean distance between the robot and the ball
+            if robot_center is not None:
+                distance = math.sqrt((center_x - robot_center[0])**2 + (center_y - robot_center[1])**2)
+                # If this ball is closer than the current closest ball, update the closest ball and its distance
+                if distance < closest_ball_distance:
+                    closest_ball = (center_x, center_y)
+                    closest_ball_distance = distance
+
     if robot_center and arrow_center:
         # calculate differences in x and y coordinates
         diff_x = arrow_center[0] - robot_center[0]
@@ -110,6 +122,10 @@ def infer():
         angle_deg = (math.degrees(angle_rad) + 360) % 360
 
         print("Robot is facing at angle:", angle_deg, "degrees")
+
+    # Print the coordinates of the closest ball, if any
+    if closest_ball is not None:
+        print("Closest ball is at coordinates:", closest_ball)
 
     return img, detections, angle_deg
 
