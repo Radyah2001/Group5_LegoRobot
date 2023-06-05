@@ -4,5 +4,8 @@
   "ROBOFLOW_SIZE": 720,
 
   "FRAMERATE": 30,
-  "BUFFER": 0.5
+  "BUFFER": 0.5,
+  "CONF":0.7,
+  "IOU": 0.4,
+  "InputSource": 1
 }

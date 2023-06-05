@@ -8,7 +8,7 @@ import time
 import socket
 
 # load config
-with open('roboflow_config.json') as f:
+with open('VideoSourceConfig.json') as f:
     config = json.load(f)
 
     ROBOFLOW_API_KEY = config["ROBOFLOW_API_KEY"]
@@ -17,6 +17,9 @@ with open('roboflow_config.json') as f:
 
     FRAMERATE = config["FRAMERATE"]
     BUFFER = config["BUFFER"]
+    INPUT_SOURCE = config["InputSource"]
+    CONF = config["CONF"]
+    IOU = config["IOU"]
 
 # Construct the Roboflow Infer URL
 # obtaining your API key: https://docs.roboflow.com/rest-api#obtaining-your-api-key
@@ -32,7 +35,7 @@ upload_url = "".join([
 
 # Get webcam interface via opencv-python
 # Replace with path to video file
-video = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+video = cv2.VideoCapture(INPUT_SOURCE, cv2.CAP_DSHOW)
 
 
 # Infer via the Roboflow Infer API and return the result
