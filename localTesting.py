@@ -23,14 +23,28 @@ s.connect((host, port))
 
 
 def move_robot(robot_angle, robot_coord, ball_coord):
-    target_angle = math.atan2(ball_coord[1] - robot_coord[1], ball_coord[0] - robot_coord[0]) * (180 / math.pi)
+    #target_angle = math.atan2(ball_coord[1] - robot_coord[1], ball_coord[0] - robot_coord[0]) * (180 / math.pi)
+    is_moving = False
 
-    if (robot_angle < target_angle + 5 and robot_coord > target_angle - 5):
+    # calculate differences in x and y coordinates
+    diff_x = ball_coord[0] - robot_coord[0]
+    diff_y = ball_coord[1] - robot_coord[1]
+
+    # calculate angle in radians
+    angle_rad = math.atan2(-diff_y, diff_x)
+
+    # convert angle to degrees
+    target_angle = (math.degrees(angle_rad) + 360) % 360
+
+    if (robot_angle < target_angle + 5 and robot_angle > target_angle - 5):
         message = "STOP"
         s.send(message.encode('utf-8'))
+        is_moving = False
     else:
-        message = "RIGHT 100"
-        s.send(message.encode('utf-8'))
+        if(is_moving == False):
+            message = "RIGHT"
+            s.send(message.encode('utf-8'))
+            is_moving = True
 
 
 def main():
@@ -107,8 +121,11 @@ def main():
             # Break the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
-            if closest_ball is not None and robot_center is not None:
+            if closest_ball is not None and robot_center is not None and angle_deg is not None:
                 move_robot(angle_deg,robot_center,closest_ball)
+            else:
+                message = "STOP"
+                s.send(message.encode('utf-8'))
 
     # Release the video capture object and close the display window
     video.release()
