@@ -1,3 +1,5 @@
+import socket
+
 import cv2
 
 from ultralytics import YOLO
@@ -12,6 +14,23 @@ with open('VideoSourceConfig.json') as f:
 CONF = config["CONF"]
 IOU = config["IOU"]
 INPUT_SOURCE = config["InputSource"]
+
+host = "192.168.43.168"  # get local machine name
+port = 1060  # Make sure it's within the > 1024 $$ <65535 range
+
+s = socket.socket()
+s.connect((host, port))
+
+
+def move_robot(robot_angle, robot_coord, ball_coord):
+    target_angle = math.atan2(ball_coord[1] - robot_coord[1], ball_coord[0] - robot_coord[0]) * (180 / math.pi)
+
+    if (robot_angle < target_angle + 5 and robot_coord > target_angle - 5):
+        message = "STOP"
+        s.send(message.encode('utf-8'))
+    else:
+        message = "RIGHT 100"
+        s.send(message.encode('utf-8'))
 
 
 def main():
@@ -88,10 +107,12 @@ def main():
             # Break the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
+            move_robot(angle_deg,robot_center,closest_ball)
 
     # Release the video capture object and close the display window
     video.release()
     cv2.destroyAllWindows()
+    s.close()
 
 
 if __name__ == "__main__":
