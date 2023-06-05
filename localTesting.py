@@ -107,7 +107,8 @@ def main():
             # Break the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
-            move_robot(angle_deg,robot_center,closest_ball)
+            if closest_ball is not None and robot_center is not None:
+                move_robot(angle_deg,robot_center,closest_ball)
 
     # Release the video capture object and close the display window
     video.release()
