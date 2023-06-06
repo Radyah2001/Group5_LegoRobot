@@ -8,7 +8,7 @@ from ev3dev2.sound import Sound
 from time import sleep
 import socket
 
-
+# ev3dev-browser is needed on vsc to run
 
 #cannot be used for this version
 # from pybricks.hubs import EV3Brick
