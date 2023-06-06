@@ -21,10 +21,10 @@ port = 1060  # Make sure it's within the > 1024 $$ <65535 range
 s = socket.socket()
 s.connect((host, port))
 
-
-def move_robot(robot_angle, robot_coord, ball_coord):
+def move_robot(robot_angle, robot_coord, ball_coord,isMoving):
     #target_angle = math.atan2(ball_coord[1] - robot_coord[1], ball_coord[0] - robot_coord[0]) * (180 / math.pi)
-    is_moving = False
+
+    is_moving = isMoving
 
     # calculate differences in x and y coordinates
     diff_x = ball_coord[0] - robot_coord[0]
@@ -36,15 +36,23 @@ def move_robot(robot_angle, robot_coord, ball_coord):
     # convert angle to degrees
     target_angle = (math.degrees(angle_rad) + 360) % 360
 
+    leftDif = (target_angle - robot_angle) % 360
+    rightDif = (robot_angle - target_angle) % 360
+
     if (robot_angle < target_angle + 5 and robot_angle > target_angle - 5):
         message = "STOP"
         s.send(message.encode('utf-8'))
         is_moving = False
+        return False
     else:
         if(is_moving == False):
-            message = "RIGHT"
+            if(rightDif <= leftDif):
+                message = "RIGHT"
+            else:
+                message = "LEFT"
             s.send(message.encode('utf-8'))
             is_moving = True
+            return True
 
 
 def main():
@@ -59,8 +67,11 @@ def main():
     closest_ball = None
     closest_ball_distance = float('inf')
     ret, frame = video.read()
+    is_moving = False
 
     while video.isOpened():
+        closest_ball = None
+        closest_ball_distance = float('inf')
         ret, frame = video.read()
         if ret:
 
@@ -122,7 +133,7 @@ def main():
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
             if closest_ball is not None and robot_center is not None and angle_deg is not None:
-                move_robot(angle_deg,robot_center,closest_ball)
+                is_moving = move_robot(angle_deg,robot_center,closest_ball,is_moving)
             else:
                 message = "STOP"
                 s.send(message.encode('utf-8'))
