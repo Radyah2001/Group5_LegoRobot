@@ -21,7 +21,7 @@ port = 1060  # Make sure it's within the > 1024 $$ <65535 range
 s = socket.socket()
 s.connect((host, port))
 
-def move_robot(robot_angle, robot_coord, ball_coord,isMoving):
+def move_robot(robot_angle, robot_coord, ball_coord,isMoving,distance_closest):
     #target_angle = math.atan2(ball_coord[1] - robot_coord[1], ball_coord[0] - robot_coord[0]) * (180 / math.pi)
 
     is_moving = isMoving
@@ -42,7 +42,13 @@ def move_robot(robot_angle, robot_coord, ball_coord,isMoving):
     if (robot_angle < target_angle + 5 and robot_angle > target_angle - 5):
         message = "STOP"
         s.send(message.encode('utf-8'))
-        is_moving = False
+        if (isMoving == False):
+            if distance_closest > 100:
+                message = "FORWARD"
+                s.send(message.encode('utf-8'))
+            else:
+                message = "STOP"
+                s.send(message.encode('utf-8'))
         return False
     else:
         if(is_moving == False):
@@ -133,7 +139,7 @@ def main():
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
             if closest_ball is not None and robot_center is not None and angle_deg is not None:
-                is_moving = move_robot(angle_deg,robot_center,closest_ball,is_moving)
+                is_moving = move_robot(angle_deg,robot_center,closest_ball,is_moving,closest_ball_distance)
             else:
                 message = "STOP"
                 s.send(message.encode('utf-8'))
