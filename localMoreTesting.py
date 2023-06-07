@@ -98,7 +98,7 @@ def main():
     while video.isOpened():
         closest_ball = None
         closest_ball_distance = float('inf')
-        corners = []
+        bounds = []
         ret, frame = video.read()
         if ret:
 
@@ -135,17 +135,17 @@ def main():
                             closest_ball = (center_x, center_y)
                             closest_ball_distance = distance
 
-                elif class_id == 4:
-                    corners.append((center_x, center_y))
+                elif class_id == 3:
+                    bounds.append((center_x, center_y))
 
-            if len(corners) >= 2:
-                corners.sort(key=lambda coord: coord[1])  # Sort corners by Y coordinate
-                lower_corner = corners[0]
-                upper_corner = corners[-1]  # This is the corner with the highest Y value
+            if len(bounds) >= 4:
+                bounds.sort(key=lambda coord: coord[1])  # Sort corners by Y coordinate
+                lower_bound = bounds[0]
+                upper_bound = bounds[-1]  # This is the  with the highest Y value
 
                 # Step 3: Use these two corners to calculate the goal position.
-                goal_x = (lower_corner[0] + upper_corner[0]) / 2
-                goal_y = (lower_corner[1] + upper_corner[1]) / 2
+                goal_x = lower_bound[0]  # x coordinate of the goal is same as x coordinate of the bounds
+                goal_y = (lower_bound[1] + upper_bound[1]) / 2
                 goal = (goal_x, goal_y)
                 print("Goal is at coordinates:", goal)
 
@@ -173,11 +173,11 @@ def main():
             # Break the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
-            if closest_ball is not None and robot_center is not None and angle_deg is not None:
-                is_moving = move_robot(angle_deg,robot_center,closest_ball,is_moving)
+            ##if closest_ball is not None and robot_center is not None and angle_deg is not None:
+              ##  is_moving = move_robot(angle_deg,robot_center,closest_ball,is_moving)
                 # Move towards goal after the robot has picked up the closest ball
-                if not is_moving and goal is not None:
-                    is_moving = move_towards_goal(angle_deg, robot_center, goal, is_moving)
+            if goal is not None:
+                is_moving = move_towards_goal(angle_deg, robot_center, goal, is_moving)
             else:
                 message = "STOP"
                 s.send(message.encode('utf-8'))
