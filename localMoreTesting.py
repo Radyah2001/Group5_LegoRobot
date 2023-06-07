@@ -88,7 +88,6 @@ def main():
     robot_center = None
     arrow_center = None
     angle_deg = None
-    corners = []
     color = (0, 0, 255)
     # Variables to store the closest ball and its distance to the robot
     closest_ball = None
@@ -99,6 +98,7 @@ def main():
     while video.isOpened():
         closest_ball = None
         closest_ball_distance = float('inf')
+        corners = []
         ret, frame = video.read()
         if ret:
 
@@ -135,7 +135,7 @@ def main():
                             closest_ball = (center_x, center_y)
                             closest_ball_distance = distance
 
-                elif np.isin(4, class_id):
+                elif class_id == 4:
                     corners.append((center_x, center_y))
 
             if len(corners) >= 2:
