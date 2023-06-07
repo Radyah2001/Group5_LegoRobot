@@ -33,6 +33,9 @@ def move_robot(robot_angle, robot_coord, ball_coord,isMoving,distance_closest):
     # calculate angle in radians
     angle_rad = math.atan2(-diff_y, diff_x)
 
+    # calculate distance
+    dist = robot_coord[0] - ball_coord[0]
+
     # convert angle to degrees
     target_angle = (math.degrees(angle_rad) + 360) % 360
 
