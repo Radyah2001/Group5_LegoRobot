@@ -66,9 +66,12 @@ def turn_robot(robot_angle, robot_coord, ball_coord, isMoving):
 def move_robot(distance):
     if distance > 50:
         message = "FORWARD"
+        moving = True
     else:
         message = "STOP"
+        moving = False
     s.send(message.encode('utf-8'))
+    return moving
 
 
 def main():
@@ -152,7 +155,10 @@ def main():
             if closest_ball is not None and robot_center is not None and angle_deg is not None:
                 is_moving = turn_robot(angle_deg, robot_center, closest_ball, is_moving)
                 if is_moving == False:
-                    move_robot(closest_ball_distance)
+                    is_moving=move_robot(closest_ball_distance)
+                elif closest_ball_distance < 50:
+                    message = "STOP"
+                    s.send(message.encode('utf-8'))
             else:
                 message = "STOP"
                 s.send(message.encode('utf-8'))
