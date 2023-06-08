@@ -18,11 +18,12 @@ INPUT_SOURCE = config["InputSource"]
 host = "192.168.43.168"  # get local machine name
 port = 1060  # Make sure it's within the > 1024 $$ <65535 range
 
-s = socket.socket()
-s.connect((host, port))
 
-def move_robot(robot_angle, robot_coord, ball_coord,isMoving):
-    #target_angle = math.atan2(ball_coord[1] - robot_coord[1], ball_coord[0] - robot_coord[0]) * (180 / math.pi)
+##s = socket.socket()
+##s.connect((host, port))
+
+def move_robot(robot_angle, robot_coord, ball_coord, isMoving):
+    # target_angle = math.atan2(ball_coord[1] - robot_coord[1], ball_coord[0] - robot_coord[0]) * (180 / math.pi)
 
     is_moving = isMoving
 
@@ -41,18 +42,19 @@ def move_robot(robot_angle, robot_coord, ball_coord,isMoving):
 
     if (robot_angle < target_angle + 5 and robot_angle > target_angle - 5):
         message = "STOP"
-        #s.send(message.encode('utf-8'))
+        # s.send(message.encode('utf-8'))
         is_moving = False
         return False
     else:
-        if(is_moving == False):
-            if(rightDif <= leftDif):
+        if (is_moving == False):
+            if (rightDif <= leftDif):
                 message = "RIGHT"
             else:
                 message = "LEFT"
-            #s.send(message.encode('utf-8'))
+            # s.send(message.encode('utf-8'))
             is_moving = True
             return True
+
 
 def move_towards_goal(robot_angle, robot_coord, goal_coord, isMoving):
     # Calculate angle between robot and goal
@@ -68,18 +70,19 @@ def move_towards_goal(robot_angle, robot_coord, goal_coord, isMoving):
 
     if (robot_angle < target_angle + 5 and robot_angle > target_angle - 5):
         message = "STOP"
-        s.send(message.encode('utf-8'))
+        ##s.send(message.encode('utf-8'))
         is_moving = False
         return False
     else:
-        if(is_moving == False):
-            if(rightDif <= leftDif):
+        if (is_moving == False):
+            if (rightDif <= leftDif):
                 message = "RIGHT"
             else:
                 message = "LEFT"
-            s.send(message.encode('utf-8'))
+            ##s.send(message.encode('utf-8'))
             is_moving = True
             return True
+
 
 def main():
     video = cv2.VideoCapture(INPUT_SOURCE, cv2.CAP_DSHOW)
@@ -87,11 +90,14 @@ def main():
     model = YOLO("res/best.pt")
     robot_center = None
     arrow_center = None
+    goal = []
     angle_deg = None
     color = (0, 0, 255)
     # Variables to store the closest ball and its distance to the robot
     closest_ball = None
     closest_ball_distance = float('inf')
+    closest_goal = None
+    closest_goal_distance = float('inf')
     ret, frame = video.read()
     is_moving = False
 
@@ -136,18 +142,21 @@ def main():
                             closest_ball_distance = distance
 
                 elif class_id == 3:
-                    bounds.append((center_x, center_y))
+                    x_center = (xyxy[0] + xyxy[2]) / 2  # calculate x center of the bound
+                    y_center = (xyxy[1] + xyxy[3]) / 2  # calculate y center of the bound
+                    bounds.append((x_center, y_center))  # save the x and y coordinates of the bounds
 
-            if len(bounds) >= 4:
-                bounds.sort(key=lambda coord: coord[1])  # Sort corners by Y coordinate
-                lower_bound = bounds[0]
-                upper_bound = bounds[-1]  # This is the  with the highest Y value
-
-                # Step 3: Use these two corners to calculate the goal position.
-                goal_x = lower_bound[0]  # x coordinate of the goal is same as x coordinate of the bounds
-                goal_y = (lower_bound[1] + upper_bound[1]) / 2
-                goal = (goal_x, goal_y)
-                print("Goal is at coordinates:", goal)
+            for center in bounds:
+                if 400 > center[1] > 200:
+                    goal.append(center)
+                    cv2.circle(frame, (int(center[0]), int(center[1])), radius=10, color=(0, 0, 255),
+                               thickness=-1)  # draw a circle for each bound center
+                    for goal in goals:
+                        if robot_center is not None:
+                            distance = math.sqrt((goal[0] - robot_center[0]) ** 2 + (goal[1] - robot_center[1]) ** 2)
+                            if distance < closest_goal_distance:
+                                closest_goal = goal
+                                closest_goal_distance = distance
 
             if robot_center and arrow_center:
                 # calculate differences in x and y coordinates
@@ -165,27 +174,30 @@ def main():
             # Print the coordinates of the closest ball, if any
             if closest_ball is not None:
                 print("Closest ball is at coordinates:", closest_ball)
+            if closest_goal is not None:
+                print("Closest goal is at coordinates:", closest_goal)
 
             annotated_frame = result.plot()
 
-            cv2.imshow("yolov8", annotated_frame)
+            cv2.imshow("yolov8", frame)
+            print(goal[0], goal[1])
 
             # Break the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
-            ##if closest_ball is not None and robot_center is not None and angle_deg is not None:
-              ##  is_moving = move_robot(angle_deg,robot_center,closest_ball,is_moving)
+                ##if closest_ball is not None and robot_center is not None and angle_deg is not None:
+                ##  is_moving = move_robot(angle_deg,robot_center,closest_ball,is_moving)
                 # Move towards goal after the robot has picked up the closest ball
-            if goal is not None:
-                is_moving = move_towards_goal(angle_deg, robot_center, goal, is_moving)
-            else:
+                ##if goal is not None:
+                ## is_moving = move_towards_goal(angle_deg, robot_center, goal, is_moving)
+                ##else:
                 message = "STOP"
-                s.send(message.encode('utf-8'))
+            ## s.send(message.encode('utf-8'))
 
     # Release the video capture object and close the display window
     video.release()
     cv2.destroyAllWindows()
-    s.close()
+    ##s.close()
 
 
 if __name__ == "__main__":
