@@ -14,6 +14,7 @@ with open('VideoSourceConfig.json') as f:
 CONF = config["CONF"]
 IOU = config["IOU"]
 INPUT_SOURCE = config["InputSource"]
+on_target = False
 
 host = "192.168.43.168"  # get local machine name
 port = 1060  # Make sure it's within the > 1024 $$ <65535 range
@@ -21,10 +22,8 @@ port = 1060  # Make sure it's within the > 1024 $$ <65535 range
 s = socket.socket()
 s.connect((host, port))
 
-def move_robot(robot_angle, robot_coord, ball_coord,isMoving,distance_closest):
+def turn_robot(robot_angle, robot_coord, ball_coord, isMoving, distance_closest, on_target):
     #target_angle = math.atan2(ball_coord[1] - robot_coord[1], ball_coord[0] - robot_coord[0]) * (180 / math.pi)
-
-    is_moving = isMoving
 
     # calculate differences in x and y coordinates
     diff_x = ball_coord[0] - robot_coord[0]
@@ -45,6 +44,7 @@ def move_robot(robot_angle, robot_coord, ball_coord,isMoving,distance_closest):
     if (robot_angle < target_angle + 5 and robot_angle > target_angle - 5):
         message = "STOP"
         s.send(message.encode('utf-8'))
+        """"
         if (isMoving == False):
             if distance_closest > 100:
                 message = "FORWARD"
@@ -52,16 +52,26 @@ def move_robot(robot_angle, robot_coord, ball_coord,isMoving,distance_closest):
             else:
                 message = "STOP"
                 s.send(message.encode('utf-8'))
+        """
+        on_target = True
         return False
     else:
-        if(is_moving == False):
+        if(isMoving == False):
             if(rightDif <= leftDif):
                 message = "RIGHT"
             else:
                 message = "LEFT"
             s.send(message.encode('utf-8'))
-            is_moving = True
+            on_target = False
             return True
+
+
+def move_robot(distance):
+    if distance > 50:
+        message = "FORWARD"
+    else:
+        message = "STOP"
+    s.send(message.encode('utf-8'))
 
 
 def main():
@@ -142,7 +152,9 @@ def main():
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
             if closest_ball is not None and robot_center is not None and angle_deg is not None:
-                is_moving = move_robot(angle_deg,robot_center,closest_ball,is_moving,closest_ball_distance)
+                is_moving = turn_robot(angle_deg, robot_center, closest_ball, is_moving, closest_ball_distance)
+                if on_target == True:
+                    move_robot()
             else:
                 message = "STOP"
                 s.send(message.encode('utf-8'))
