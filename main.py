@@ -22,6 +22,7 @@ port = 1060  # Make sure it's within the > 1024 $$ <65535 range
 s = socket.socket()
 s.connect((host, port))
 
+'''''
 def turn_robot(robot_angle, back_coord, target_coord, isMoving):
     # calculate differences in x and y coordinates
     diff_x = target_coord[0] - back_coord[0]
@@ -63,8 +64,56 @@ def move_robot(distance, target_distance):
         moving = False
     s.send(message.encode('utf-8'))
     return moving
+'''''
+
+def turn_robot(robot_angle, robot_coord, ball_coord, isMoving):
+    # calculate differences in x and y coordinates
+    diff_x = ball_coord[0] - robot_coord[0]
+    diff_y = ball_coord[1] - robot_coord[1]
+
+    # calculate angle in radians
+    angle_rad = math.atan2(-diff_y, diff_x)
+
+    # calculate distance
+    dist = robot_coord[0] - ball_coord[0]
+
+    # convert angle to degrees
+    target_angle = (math.degrees(angle_rad) + 360) % 360
+
+    angle_difference = target_angle - robot_angle
+    if angle_difference > 180:
+        angle_difference -= 360
+    elif angle_difference < -180:
+        angle_difference += 360
+
+    if isMoving:
+        if -2 <= angle_difference <= 2:  # Close enough to target while moving
+            message = "STOP"
+            s.send(message.encode('utf-8'))
+            return False
+    else:
+        if -5 <= angle_difference <= 5:  # Not enough to target while not moving
+            return False
+
+    if angle_difference > 0:
+        message = "LEFT"
+    else:
+        message = "RIGHT"
+    s.send(message.encode('utf-8'))
+    return True
 
 
+def move_robot(distance):
+    if distance > 10:  # Start moving if distance is greater than 10
+        message = "FORWARD"
+        moving = True
+    elif distance < 5:  # Stop moving if distance is less than 5
+        message = "STOP"
+        moving = False
+    else:  # Continue the previous state if the distance is between 5 and 10
+        return moving
+    s.send(message.encode('utf-8'))
+    return moving
 
 def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds):
     for i in range(len(detections)):
