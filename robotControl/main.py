@@ -69,15 +69,19 @@ def move(tester):
     if (len(input) == 1):
         input.append('100')
     if (input[0] == "FORWARD"):
-        tank_pair.on_for_rotations(SpeedPercent(-50), SpeedPercent(-50), int(input[1]), block=False)
+        tank_pair.on_for_rotations(SpeedPercent(-int(input[1])), SpeedPercent(-int(input[1])), 100, block=False)
     elif (input[0] == "BACK"):
-        tank_pair.on_for_rotations(SpeedPercent(50), SpeedPercent(50), int(input[1]), block=False)
+        tank_pair.on_for_rotations(SpeedPercent(int(input[1])), SpeedPercent(int(input[1])), 100, block=False)
     elif (input[0] == "RIGHT"):
-        tank_pair.on_for_rotations(SpeedPercent(-50), SpeedPercent(50), int(input[1]), block=False)
+        tank_pair.on_for_rotations(SpeedPercent(-int(input[1])), SpeedPercent(int(input[1])), 100, block=False)
     elif (input[0] == "LEFT"):
-        tank_pair.on_for_rotations(SpeedPercent(50), SpeedPercent(-50), int(input[1]), block=False)
+        tank_pair.on_for_rotations(SpeedPercent(int(input[1])), SpeedPercent(-int(input[1])), 100, block=False)
     elif (input[0] == "SPIN"):
         scoop.on(SpeedPercent(int(input[1])), block=False)
+    elif (input[0] == "EJECT"):
+        scoop.on_for_seconds(SpeedPercent(-30), int(input[1]))
+        tank_pair.on_for_rotations(SpeedPercent(80), SpeedPercent(80), 1)
+        scoop.on(SpeedPercent(25), block=False)
     elif (input[0] == "SPINOFF"):
         scoop.stop()
     elif (input[0] == "DEGMOVE"):
@@ -87,9 +91,9 @@ def move(tester):
     elif (input[0] == "STOP"):
         tank_pair.stop()
     elif (input[0] == "FIX"):
-        scoop.on_for_degrees(SpeedPercent(-70), 90)
-        scoop.on_for_degrees(SpeedPercent(70), 90)
-        scoop.on(SpeedPercent(40), block=False)
+        scoop.on_for_degrees(SpeedPercent(-70), 40)
+        scoop.on_for_degrees(SpeedPercent(70), 40)
+        scoop.on(SpeedPercent(25), block=False)
     else:
         print('nope')
 
