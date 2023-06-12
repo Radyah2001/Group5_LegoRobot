@@ -31,18 +31,15 @@ def turn_robot(robot_angle, robot_coord, ball_coord, isMoving):
     # calculate angle in radians
     angle_rad = math.atan2(-diff_y, diff_x)
 
-    # calculate distance
-    dist = robot_coord[0] - ball_coord[0]
-
     # convert angle to degrees
     target_angle = (math.degrees(angle_rad) + 360) % 360
 
     leftDif = (target_angle - robot_angle) % 360
     rightDif = (robot_angle - target_angle) % 360
 
-    if (robot_angle < target_angle + 5 and robot_angle > target_angle - 5):
-        message = "STOP"
-        s.send(message.encode('utf-8'))
+    if (robot_angle < target_angle + 4 and robot_angle > target_angle - 4):
+        #message = "STOP"
+        #s.send(message.encode('utf-8'))
         """"
         if (isMoving == False):
             if distance_closest > 100:
@@ -54,17 +51,17 @@ def turn_robot(robot_angle, robot_coord, ball_coord, isMoving):
         """
         return False
     else:
-        if(isMoving == False):
-            if(rightDif <= leftDif):
-                message = "RIGHT"
-            else:
-                message = "LEFT"
-            s.send(message.encode('utf-8'))
-            return True
-
+        if(rightDif <= leftDif):
+            message = "RIGHT"
+        else:
+            message = "LEFT"
+        s.send(message.encode('utf-8'))
+        return True
 
 def move_robot(distance):
-    if distance > 50:
+    message = "STOP"
+    s.send(message.encode('utf-8'))
+    if distance > 5:
         message = "FORWARD"
         moving = True
     else:
@@ -73,6 +70,9 @@ def move_robot(distance):
     s.send(message.encode('utf-8'))
     return moving
 
+def calcBallDist(ball, frontArrow):
+    return math.sqrt((frontArrow[0] - ball[0]) ** 2 + (frontArrow[1] - ball[1]) ** 2)
+
 
 def main():
     video = cv2.VideoCapture(INPUT_SOURCE, cv2.CAP_DSHOW)
@@ -80,14 +80,18 @@ def main():
     model = YOLO("res/best.pt")
     robot_center = None
     arrow_center = None
+    back_center = None
     angle_deg = None
     color = (0, 0, 255)
     # Variables to store the closest ball and its distance to the robot
     closest_ball = None
+    closest_ball_saved = None
     closest_ball_distance = float('inf')
     ret, frame = video.read()
     is_moving = False
     on_target = False
+    message = "SPIN 40"
+    s.send(message.encode('utf-8'))
 
     while video.isOpened():
         closest_ball = None
@@ -119,19 +123,22 @@ def main():
                     arrow_center = (center_x, center_y)
                     color = (0, 0, 255)  # Red for front
 
+                elif np.isin(0, class_id):
+                    back_center = (center_x, center_y)
+
                 elif np.isin(1 and 2, class_id):
                     # Calculate the Euclidean distance between the robot and the ball
-                    if robot_center is not None:
-                        distance = math.sqrt((center_x - robot_center[0]) ** 2 + (center_y - robot_center[1]) ** 2)
+                    if arrow_center is not None:
+                        distance = math.sqrt((center_x - arrow_center[0]) ** 2 + (center_y - arrow_center[1]) ** 2)
                         # If this ball is closer than the current closest ball, update the closest ball and its distance
                         if distance < closest_ball_distance:
                             closest_ball = (center_x, center_y)
                             closest_ball_distance = distance
 
-            if robot_center and arrow_center:
+            if back_center and arrow_center:
                 # calculate differences in x and y coordinates
-                diff_x = arrow_center[0] - robot_center[0]
-                diff_y = arrow_center[1] - robot_center[1]
+                diff_x = arrow_center[0] - back_center[0]
+                diff_y = arrow_center[1] - back_center[1]
 
                 # calculate angle in radians
                 angle_rad = math.atan2(-diff_y, diff_x)
@@ -144,6 +151,7 @@ def main():
             # Print the coordinates of the closest ball, if any
             if closest_ball is not None:
                 print("Closest ball is at coordinates:", closest_ball)
+                print("Closest ball distance is", closest_ball_distance)
 
             annotated_frame = result.plot()
 
@@ -153,12 +161,16 @@ def main():
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
             if closest_ball is not None and robot_center is not None and angle_deg is not None:
-                is_moving = turn_robot(angle_deg, robot_center, closest_ball, is_moving)
+                if closest_ball_saved is None:
+                    closest_ball_saved = closest_ball
+                is_moving = turn_robot(angle_deg, robot_center, closest_ball_saved, is_moving)
                 if is_moving == False:
-                    is_moving=move_robot(closest_ball_distance)
-                elif closest_ball_distance < 50:
+                    is_moving=move_robot(calcBallDist(closest_ball_saved, arrow_center))
+                elif calcBallDist(closest_ball_saved, arrow_center) < 5:
                     message = "STOP"
                     s.send(message.encode('utf-8'))
+                if calcBallDist(closest_ball_saved, arrow_center) <= 5:
+                    closest_ball_saved = None
             else:
                 message = "STOP"
                 s.send(message.encode('utf-8'))

@@ -47,9 +47,9 @@ def turn_robot(robot_angle, robot_coord, ball_coord, isMoving):
         return False
     else:
         if angle_difference > 0:
-            message = "RIGHT"
-        else:
             message = "LEFT"
+        else:
+            message = "RIGHT"
         s.send(message.encode('utf-8'))
         return True
 
@@ -78,6 +78,8 @@ def main():
     ret, frame = video.read()
     is_moving = False
     on_target = False
+    message = "SPIN 40"
+    s.send(message.encode('utf-8'))
 
     while video.isOpened():
         closest_ball = None
