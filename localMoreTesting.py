@@ -50,7 +50,7 @@ def main():
             result = model(frame, conf=CONF, iou=IOU)[0]
             detections = sv.Detections.from_yolov8(result)
             robot_center, arrow_center, closest_ball = handle_detections(detections, robot_center, arrow_center,
-                                                                         closest_ball, closest_ball_distance)
+                                                                         closest_ball, closest_ball_distance, bounds)
             goal = find_goal(goal, bounds)
             angle_deg = find_robot_angle(robot_center, arrow_center)
             if goal is not None:
@@ -63,7 +63,7 @@ def main():
     cv2.destroyAllWindows()
 
 
-def handle_detections(detections, robot_center, arrow_center, closest_ball, closest_ball_distance):
+def handle_detections(detections, robot_center, arrow_center, closest_ball, closest_ball_distance, bounds):
     for i in range(len(detections)):
         xyxy = detections.xyxy[i]
         center_x = (xyxy[0] + xyxy[2]) / 2
@@ -79,12 +79,16 @@ def handle_detections(detections, robot_center, arrow_center, closest_ball, clos
                 if distance < closest_ball_distance:
                     closest_ball = (center_x, center_y)
                     closest_ball_distance = distance
+        elif class_id == 3:
+            x_center = (xyxy[0] + xyxy[2]) / 2  # calculate x center of the bound
+            y_center = (xyxy[1] + xyxy[3]) / 2  # calculate y center of the bound
+            bounds.append((x_center, y_center))  # save the x and y coordinates of the bounds
     return robot_center, arrow_center, closest_ball
 
 
 def find_goal(goal, bounds):
     for center in bounds:
-        if 200 < center[1] < 400 and center[0] < 200 and goal is None:
+        if 200 < center[1] < 400 and center[0] > 200 and goal is None:
             goal = (center[0], center[1])
     return goal
 
