@@ -22,7 +22,7 @@ port = 1060  # Make sure it's within the > 1024 $$ <65535 range
 s = socket.socket()
 s.connect((host, port))
 
-'''''
+
 def turn_robot(robot_angle, back_coord, target_coord, isMoving):
     # calculate differences in x and y coordinates
     diff_x = target_coord[0] - back_coord[0]
@@ -55,17 +55,22 @@ def turn_robot(robot_angle, back_coord, target_coord, isMoving):
         s.send(message.encode('utf-8'))
         return True
 
-def move_robot(distance, target_distance):
+
+def move_robot(distance, target_distance, is_moving):
     if distance > target_distance:
         message = "FORWARD"
         moving = True
-    else:
+        s.send(message.encode('utf-8'))
+        return moving
+    elif is_moving == True:
         message = "STOP"
         moving = False
-    s.send(message.encode('utf-8'))
-    return moving
-'''''
+        s.send(message.encode('utf-8'))
+        return moving
+    return is_moving
 
+
+'''
 def turn_robot(robot_angle, robot_coord, ball_coord, isMoving):
     # calculate differences in x and y coordinates
     diff_x = ball_coord[0] - robot_coord[0]
@@ -103,17 +108,24 @@ def turn_robot(robot_angle, robot_coord, ball_coord, isMoving):
     return True
 
 
-def move_robot(distance):
-    if distance > 10:  # Start moving if distance is greater than 10
-        message = "FORWARD"
+def move_robot(distance, moving):
+    
+    if distance > 100:  # Start moving if distance is greater than 10
+        message = "FORWARD 80"
         moving = True
-    elif distance < 5:  # Stop moving if distance is less than 5
+    elif distance > 50:  # Stop moving if distance is less than 5
+        message = "FORWARD 40"
+        moving = True
+    elif distance > 20:
+        message = "FORWARD 20"
+        moving = True
+    else:  # Continue the previous state if the distance is between 5 and 10
         message = "STOP"
         moving = False
-    else:  # Continue the previous state if the distance is between 5 and 10
-        return moving
     s.send(message.encode('utf-8'))
     return moving
+'''
+
 
 def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds):
     for i in range(len(detections)):
@@ -139,6 +151,7 @@ def handle_detections(detections, robot_center, arrow_center, back_center, close
             bounds.append((x_center, y_center))  # save the x and y coordinates of the bounds
     return robot_center, arrow_center, closest_ball, back_center
 
+
 def calcBallDist(ball, frontArrow):
     return math.sqrt((frontArrow[0] - ball[0]) ** 2 + (frontArrow[1] - ball[1]) ** 2)
 
@@ -149,6 +162,7 @@ def find_goal(goal, bounds):
             goal = (center[0], center[1])
     return goal
 
+
 def find_robot_angle(back_center, arrow_center):
     if back_center and arrow_center:
         diff_x = arrow_center[0] - back_center[0]
@@ -158,6 +172,7 @@ def find_robot_angle(back_center, arrow_center):
         print("Robot is facing at angle:", angle_deg, "degrees")
         return angle_deg
     return None
+
 
 def main():
     video = cv2.VideoCapture(INPUT_SOURCE, cv2.CAP_DSHOW)
@@ -176,9 +191,10 @@ def main():
         if ret:
             result = model(frame, conf=CONF, iou=IOU)[0]
             detections = sv.Detections.from_yolov8(result)
-            robot_center, arrow_center, closest_ball, back_center = handle_detections(detections, robot_center, arrow_center,
-                                                                         back_center, closest_ball,
-                                                                         closest_ball_distance, bounds)
+            robot_center, arrow_center, closest_ball, back_center = handle_detections(detections, robot_center,
+                                                                                      arrow_center,
+                                                                                      back_center, closest_ball,
+                                                                                      closest_ball_distance, bounds)
             goal = find_goal(goal, bounds)
             angle_deg = find_robot_angle(back_center, arrow_center)
             if goal is not None:
@@ -195,7 +211,7 @@ def main():
                     closest_ball_saved = closest_ball
                 is_moving = turn_robot(angle_deg, back_center, closest_ball_saved, is_moving)
                 if is_moving == False:
-                    is_moving = move_robot(calcBallDist(closest_ball_saved, arrow_center), 5)
+                    is_moving = move_robot(calcBallDist(closest_ball_saved, arrow_center), 5, is_moving)
                 elif calcBallDist(closest_ball_saved, arrow_center) <= 20:
                     message = "FORWARD"
                     s.send(message.encode('utf-8'))
@@ -204,13 +220,13 @@ def main():
                     message = "STOP"
                     s.send(message.encode('utf-8'))
             elif closest_ball is None and goal is not None:
-                if is_moving == False:
-                    is_moving = move_robot(calcBallDist(goal, arrow_center), 50)
                 is_moving = turn_robot(angle_deg, back_center, goal, is_moving)
+                if is_moving == False:
+                    is_moving = move_robot(calcBallDist(goal, arrow_center), 50, is_moving)
                 if calcBallDist(goal, arrow_center) <= 50:
-                    message = "SPIN -40"
+                    message = "EJECT 5"
                     s.send(message.encode('utf-8'))
-                    time.sleep(0.5)
+                    closest_ball_saved = None
             else:
                 message = "STOP"
                 s.send(message.encode('utf-8'))
