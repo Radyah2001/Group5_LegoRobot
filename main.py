@@ -127,7 +127,7 @@ def move_robot(distance, moving):
 '''
 
 
-def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds):
+def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds, cross_center):
     for i in range(len(detections)):
         xyxy = detections.xyxy[i]
         center_x = (xyxy[0] + xyxy[2]) / 2
@@ -181,6 +181,8 @@ def main():
     closest_ball_saved = None
     is_moving = False
     robot_center, arrow_center, back_center, goal = None, None, None, None
+    message = "SPIN 25"
+    s.send(message.encode('utf-8'))
     while video.isOpened():
         closest_ball = None
         closest_ball_distance = float('inf')
@@ -204,28 +206,25 @@ def main():
             # Break the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
-            if closest_ball_saved is None:
-                closest_ball_saved = closest_ball
-            if closest_ball_saved is not None and back_center is not None and angle_deg is not None:
-                if calcBallDist(closest_ball_saved, arrow_center) > calcBallDist(closest_ball_saved, robot_center) and calcBallDist(closest_ball_saved,robot_center) <= 50:
-                    message = "BACK"
-                    s.send(message.encode('utf-8'))
+            if closest_ball is not None and back_center is not None and angle_deg is not None:
+                if closest_ball_saved is None:
+                    closest_ball_saved = closest_ball
                 is_moving = turn_robot(angle_deg, back_center, closest_ball_saved, is_moving)
-                print("distance to saved ball is:",calcBallDist(closest_ball_saved, arrow_center))
                 if is_moving == False:
                     is_moving = move_robot(calcBallDist(closest_ball_saved, arrow_center), 5, is_moving)
-                if calcBallDist(closest_ball_saved, arrow_center) <= 15:
-                    message = "SPIN"
+                elif calcBallDist(closest_ball_saved, arrow_center) <= 20:
+                    message = "FORWARD"
                     s.send(message.encode('utf-8'))
+                if calcBallDist(closest_ball_saved, arrow_center) <= 10:
                     closest_ball_saved = None
-                    #message = "STOP"
-                    #s.send(message.encode('utf-8'))
+                    message = "STOP"
+                    s.send(message.encode('utf-8'))
             elif closest_ball is None and goal is not None:
                 is_moving = turn_robot(angle_deg, back_center, goal, is_moving)
                 if is_moving == False:
                     is_moving = move_robot(calcBallDist(goal, arrow_center), 50, is_moving)
                 if calcBallDist(goal, arrow_center) <= 50:
-                    message = "EJECT"
+                    message = "EJECT 5"
                     s.send(message.encode('utf-8'))
                     closest_ball_saved = None
             else:
