@@ -1,5 +1,6 @@
 import socket
 import time
+from unittest import result
 
 import cv2
 
@@ -174,66 +175,104 @@ def find_robot_angle(back_center, arrow_center):
     return None
 
 
-def main():
+def initialize_video_and_model():
     video = cv2.VideoCapture(INPUT_SOURCE, cv2.CAP_DSHOW)
     model = YOLO("res/best.pt")
-    closest_ball_distance, closest_goal_distance = float('inf'), float('inf')
-    closest_ball_saved = None
-    is_moving = False
-    robot_center, arrow_center, back_center, goal = None, None, None, None
-    message = "SPIN 25"
-    s.send(message.encode('utf-8'))
-    while video.isOpened():
-        closest_ball = None
-        closest_ball_distance = float('inf')
-        bounds = []
-        ret, frame = video.read()
-        if ret:
-            result = model(frame, conf=CONF, iou=IOU)[0]
-            detections = sv.Detections.from_yolov8(result)
-            robot_center, arrow_center, closest_ball, back_center = handle_detections(detections, robot_center,
-                                                                                      arrow_center,
-                                                                                      back_center, closest_ball,
-                                                                                      closest_ball_distance, bounds)
-            goal = find_goal(goal, bounds)
-            angle_deg = find_robot_angle(back_center, arrow_center)
-            if goal is not None:
-                cv2.circle(frame, (int(goal[0]), int(goal[1])), radius=10, color=(0, 0, 255),
-                           thickness=-1)
-            annotated_frame = result.plot()
-            cv2.imshow("yolov8", annotated_frame)
+    return video, model
 
-            # Break the loop if 'q' is pressed
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
-            if closest_ball is not None and back_center is not None and angle_deg is not None:
-                if closest_ball_saved is None:
-                    closest_ball_saved = closest_ball
-                is_moving = turn_robot(angle_deg, back_center, closest_ball_saved, is_moving)
-                if is_moving == False:
-                    is_moving = move_robot(calcBallDist(closest_ball_saved, arrow_center), 5, is_moving)
-                elif calcBallDist(closest_ball_saved, arrow_center) <= 20:
-                    message = "FORWARD"
-                    s.send(message.encode('utf-8'))
-                if calcBallDist(closest_ball_saved, arrow_center) <= 10:
-                    closest_ball_saved = None
-                    message = "STOP"
-                    s.send(message.encode('utf-8'))
-            elif closest_ball is None and goal is not None:
-                is_moving = turn_robot(angle_deg, back_center, goal, is_moving)
-                if is_moving == False:
-                    is_moving = move_robot(calcBallDist(goal, arrow_center), 50, is_moving)
-                if calcBallDist(goal, arrow_center) <= 50:
-                    message = "EJECT 5"
-                    s.send(message.encode('utf-8'))
-                    closest_ball_saved = None
-            else:
-                message = "STOP"
-                s.send(message.encode('utf-8'))
+
+def send_message(message, socket):
+    socket.send(message.encode('utf-8'))
+
+
+def process_frame(video, model):
+    ret, frame = video.read()
+    if not ret:
+        return None, None
+    result = model(frame, conf=CONF, iou=IOU)[0]
+    detections = sv.Detections.from_yolov8(result)
+    return frame, detections
+
+
+def process_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance,
+                       bounds):
+    robot_center, arrow_center, closest_ball, back_center = handle_detections(detections, robot_center, arrow_center,
+                                                                              back_center, closest_ball,
+                                                                              closest_ball_distance, bounds)
+    goal = find_goal(goal, bounds)
+    angle_deg = find_robot_angle(back_center, arrow_center)
+    return robot_center, arrow_center, closest_ball, back_center, goal, angle_deg
+
+
+def handle_closest_ball(closest_ball, back_center, angle_deg, closest_ball_saved, is_moving):
+    closest_ball_saved = closest_ball if closest_ball_saved is None else closest_ball_saved
+    is_moving = turn_robot(angle_deg, back_center, closest_ball_saved, is_moving)
+    dist_to_ball = calcBallDist(closest_ball_saved, arrow_center)
+
+    if not is_moving:
+        is_moving = move_robot(dist_to_ball, 5, is_moving)
+    if dist_to_ball <= 20:
+        send_message("FORWARD", s)
+    if dist_to_ball <= 10:
+        closest_ball_saved = None
+        send_message("STOP", s)
+
+    return closest_ball_saved, is_moving
+
+
+def handle_goal(back_center, angle_deg, goal, is_moving):
+    is_moving = turn_robot(angle_deg, back_center, goal, is_moving)
+    dist_to_goal = calcBallDist(goal, arrow_center)
+
+    if not is_moving:
+        is_moving = move_robot(dist_to_goal, 50, is_moving)
+    if dist_to_goal <= 50:
+        send_message("EJECT", s)
+        closest_ball_saved = None
+
+    return is_moving
+
+
+def main():
+    video, model = initialize_video_and_model()
+    closest_ball_saved = None
+    robot_center, arrow_center, back_center, goal = None, None, None, None
+    is_moving = False
+    bounds = []
+    send_message("SPIN", s)
+
+    while video.isOpened():
+        closest_ball, closest_ball_distance = None, float('inf')
+        frame, detections = process_frame(video, model)
+        if frame is None:
+            continue
+        robot_center, arrow_center, closest_ball, back_center, goal, angle_deg = process_detections(detections,
+                                                                                                    robot_center,
+                                                                                                    arrow_center,
+                                                                                                    back_center,
+                                                                                                    closest_ball,
+                                                                                                    closest_ball_distance,
+                                                                                                    bounds)
+
+        if goal:
+            cv2.circle(frame, (int(goal[0]), int(goal[1])), radius=10, color=(0, 0, 255), thickness=-1)
+        annotated_frame = result.plot()
+        cv2.imshow("yolov8", annotated_frame)
+
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
+        if all([closest_ball, back_center, angle_deg]):
+            closest_ball_saved, is_moving = handle_closest_ball(closest_ball, back_center, angle_deg,
+                                                                closest_ball_saved, is_moving)
+        elif closest_ball is None and goal:
+            is_moving = handle_goal(back_center, angle_deg, goal, is_moving)
+        else:
+            send_message("STOP", s)
+
     video.release()
     cv2.destroyAllWindows()
     s.close()
-
 
 if __name__ == "__main__":
     main()
