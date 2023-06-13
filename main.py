@@ -127,7 +127,7 @@ def move_robot(distance, moving):
 '''
 
 
-def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds, cross_center):
+def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds):
     for i in range(len(detections)):
         xyxy = detections.xyxy[i]
         center_x = (xyxy[0] + xyxy[2]) / 2
@@ -181,7 +181,7 @@ def main():
     closest_ball_saved = None
     is_moving = False
     robot_center, arrow_center, back_center, goal = None, None, None, None
-    message = "SPIN 25"
+    message = "SPIN"
     s.send(message.encode('utf-8'))
     while video.isOpened():
         closest_ball = None
@@ -224,7 +224,7 @@ def main():
                 if is_moving == False:
                     is_moving = move_robot(calcBallDist(goal, arrow_center), 50, is_moving)
                 if calcBallDist(goal, arrow_center) <= 50:
-                    message = "EJECT 5"
+                    message = "EJECT"
                     s.send(message.encode('utf-8'))
                     closest_ball_saved = None
             else:
