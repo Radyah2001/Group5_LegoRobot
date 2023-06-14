@@ -132,7 +132,7 @@ def move_robot(distance, moving):
 '''
 
 
-def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds):
+def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds, cross_center):
     for i in range(len(detections)):
         xyxy = detections.xyxy[i]
         center_x = (xyxy[0] + xyxy[2]) / 2
@@ -154,7 +154,9 @@ def handle_detections(detections, robot_center, arrow_center, back_center, close
             x_center = (xyxy[0] + xyxy[2]) / 2  # calculate x center of the bound
             y_center = (xyxy[1] + xyxy[3]) / 2  # calculate y center of the bound
             bounds.append((x_center, y_center))  # save the x and y coordinates of the bounds
-    return robot_center, arrow_center, closest_ball, back_center
+        elif class_id == 5:
+            cross_center = (center_x,center_y)
+    return robot_center, arrow_center, closest_ball, back_center, cross_center
 
 
 def calcBallDist(ball, frontArrow):
@@ -185,7 +187,7 @@ def main():
     closest_ball_distance, closest_goal_distance = float('inf'), float('inf')
     closest_ball_saved = None
     is_moving = False
-    robot_center, arrow_center, back_center, goal = None, None, None, None
+    robot_center, arrow_center, back_center, goal, cross_center = None, None, None, None, None
     message = "SPIN"
     s.send(message.encode('utf-8'))
     while video.isOpened():
@@ -196,10 +198,10 @@ def main():
         if ret:
             result = model(frame, conf=CONF, iou=IOU)[0]
             detections = sv.Detections.from_yolov8(result)
-            robot_center, arrow_center, closest_ball, back_center = handle_detections(detections, robot_center,
+            robot_center, arrow_center, closest_ball, back_center, cross_center = handle_detections(detections, robot_center,
                                                                                       arrow_center,
                                                                                       back_center, closest_ball,
-                                                                                      closest_ball_distance, bounds)
+                                                                                      closest_ball_distance, bounds, cross_center)
             goal = find_goal(goal, bounds)
             angle_deg = find_robot_angle(back_center, arrow_center)
             if goal is not None:
