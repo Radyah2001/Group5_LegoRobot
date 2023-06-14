@@ -1,8 +1,5 @@
 import socket
-import time
-
 import cv2
-
 from ultralytics import YOLO
 import supervision as sv
 import numpy as np
@@ -76,10 +73,7 @@ def move_robot(distance, target_distance, is_moving):
 '''
 
 
-def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving, cross_center, offset = (50, 50)):
-    if is_cross_between(target_coord, back_coord, cross_center):
-        # calculate an offset target to avoid the cross
-        target_coord = (target_coord[0] + offset[0], target_coord[1] + offset[1])
+def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
     # calculate differences in x and y coordinates
     diff_x = target_coord[0] - back_coord[0]
     diff_y = target_coord[1] - back_coord[1]
@@ -127,14 +121,6 @@ def navigate_robot(robot_angle, back_coord, target_coord, distance, target_dista
             s.send(message.encode('utf-8'))
 
     return is_moving
-
-
-def is_cross_between(target_coord, back_coord, cross_center, tolerance=10):
-    dist_robot_target = calcDist(target_coord, back_coord)
-    dist_robot_cross = calcDist(cross_center, back_coord)
-    dist_target_cross = calcDist(target_coord, cross_center)
-
-    return dist_robot_cross + dist_target_cross - tolerance <= dist_robot_target
 
 
 def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds,
@@ -235,7 +221,7 @@ def main():
                     message = "BACK"
                     s.send(message.encode('utf-8'))
                 is_moving = navigate_robot(angle_deg, back_center, closest_ball_saved,
-                                           calcDist(closest_ball_saved, arrow_center), 5, is_moving,cross_center)
+                                           calcDist(closest_ball_saved, arrow_center), 5, is_moving)
                 # elif calcBallDist(closest_ball_saved, arrow_center) <= 20:
                 #    message = "FORWARD"
                 #    s.send(message.encode('utf-8'))
@@ -246,11 +232,11 @@ def main():
             elif closest_ball is None and goal is not None:
                 if not checkpoint_reached:
                     is_moving = navigate_robot(angle_deg, back_center, checkpoint, calcDist(checkpoint, arrow_center),
-                                               15, is_moving, cross_center)
+                                               15, is_moving)
                     if calcDist(checkpoint, arrow_center) <= 15:
                         checkpoint_reached = True
                 else:
-                    navigate_robot(angle_deg, back_center, goal, calcDist(goal, arrow_center), 30, is_moving, cross_center)
+                    navigate_robot(angle_deg, back_center, goal, calcDist(goal, arrow_center), 30, is_moving)
                     if calcDist(goal, arrow_center) <= 40:
                         message = "EJECT"
                         s.send(message.encode('utf-8'))
