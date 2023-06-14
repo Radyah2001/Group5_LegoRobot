@@ -73,7 +73,7 @@ def move_robot(distance, target_distance, is_moving):
 '''
 
 
-def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving, obstacle_avoidance, obstacle_coord=None):
+def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving, obstacle_avoidance,arrow_center, obstacle_coord=None):
     # calculate differences in x and y coordinates
     diff_x = target_coord[0] - back_coord[0]
     diff_y = target_coord[1] - back_coord[1]
@@ -107,7 +107,7 @@ def navigate_robot(robot_angle, back_coord, target_coord, distance, target_dista
 
     # Obstacle avoidance logic
     if obstacle_coord is not None:
-        obstacle_dist = math.sqrt((back_coord[0] - obstacle_coord[0]) ** 2 + (back_coord[1] - obstacle_coord[1]) ** 2)
+        obstacle_dist = math.sqrt((arrow_center[0] - obstacle_coord[0]) ** 2 + (arrow_center[1] - obstacle_coord[1]) ** 2)
         if obstacle_dist < 30:  # threshold distance to avoid obstacle
             if not obstacle_avoidance:
                 if angle_difference > 0:
@@ -240,7 +240,7 @@ def main():
                     message = "BACK"
                     s.send(message.encode('utf-8'))
                 is_moving, obstacle_avoidance = navigate_robot(angle_deg, back_center, closest_ball_saved,
-                                           calcDist(closest_ball_saved, arrow_center), 5, is_moving,obstacle_avoidance, cross_center)
+                                           calcDist(closest_ball_saved, arrow_center), 5, is_moving,obstacle_avoidance,arrow_center, cross_center)
                 # elif calcBallDist(closest_ball_saved, arrow_center) <= 20:
                 #    message = "FORWARD"
                 #    s.send(message.encode('utf-8'))
@@ -251,11 +251,11 @@ def main():
             elif closest_ball is None and goal is not None:
                 if not checkpoint_reached:
                     is_moving, obstacle_avoidance = navigate_robot(angle_deg, back_center, checkpoint, calcDist(checkpoint, arrow_center),
-                                               15, is_moving, obstacle_avoidance, cross_center)
+                                               15, is_moving, obstacle_avoidance,arrow_center, cross_center)
                     if calcDist(checkpoint, arrow_center) <= 15:
                         checkpoint_reached = True
                 else:
-                    is_moving, obstacle_avoidance = navigate_robot(angle_deg, back_center, goal, calcDist(goal, arrow_center), 30, is_moving,obstacle_avoidance, cross_center)
+                    is_moving, obstacle_avoidance = navigate_robot(angle_deg, back_center, goal, calcDist(goal, arrow_center), 30, is_moving,obstacle_avoidance,arrow_center, cross_center)
                     if calcDist(goal, arrow_center) <= 40:
                         message = "EJECT"
                         s.send(message.encode('utf-8'))
