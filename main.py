@@ -214,6 +214,9 @@ def main():
             if closest_ball is not None and back_center is not None and angle_deg is not None:
                 if closest_ball_saved is None:
                     closest_ball_saved = closest_ball
+                if calcBallDist(closest_ball_saved, arrow_center) > calcBallDist(closest_ball_saved, robot_center) and calcBallDist(closest_ball_saved, robot_center) <= 50:
+                    message = "BACK"
+                    s.send(message.encode('utf-8'))
                 is_moving = turn_robot(angle_deg, back_center, closest_ball_saved, is_moving)
                 if is_moving == False:
                     is_moving = move_robot(calcBallDist(closest_ball_saved, arrow_center), 5, is_moving)
