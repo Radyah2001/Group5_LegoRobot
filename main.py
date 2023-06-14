@@ -16,7 +16,7 @@ INPUT_SOURCE = config["InputSource"]
 host = "192.168.43.168"  # get local machine name
 port = 1060  # Make sure it's within the > 1024 $$ <65535 range
 
-s = socket.socket()
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((host, port))
 
 '''
@@ -125,7 +125,7 @@ def navigate_robot(robot_angle, back_coord, target_coord, distance, target_dista
 
     # Only move if robot is already facing target
     if not is_moving and not obstacle_avoidance:
-        if 5 < distance < 20:
+        if 5 < distance < 15:
             message = "FAST"
             is_moving = True
             s.send(message.encode('utf-8'))
@@ -224,7 +224,7 @@ def main():
             if goal is not None:
                 cv2.circle(frame, (int(goal[0]), int(goal[1])), radius=10, color=(0, 0, 255),
                            thickness=-1)
-                cv2.circle(frame, (int(checkpoint[0]), int(checkpoint[1])), radius=15, color=(125, 250, 250),
+                cv2.circle(frame, (int(checkpoint[0]), int(checkpoint[1])), radius=15, color=(0, 250, 250),
                            thickness=-1)
             annotated_frame = result.plot()
             cv2.imshow("yolov8", annotated_frame)
@@ -240,7 +240,7 @@ def main():
                     message = "BACK"
                     s.send(message.encode('utf-8'))
                 is_moving, obstacle_avoidance = navigate_robot(angle_deg, back_center, closest_ball_saved,
-                                           calcDist(closest_ball_saved, arrow_center), 5, is_moving,obstacle_avoidance,arrow_center, cross_center)
+                                           calcDist(closest_ball_saved, arrow_center), 5, is_moving, obstacle_avoidance,arrow_center, cross_center)
                 # elif calcBallDist(closest_ball_saved, arrow_center) <= 20:
                 #    message = "FORWARD"
                 #    s.send(message.encode('utf-8'))
@@ -256,7 +256,7 @@ def main():
                         checkpoint_reached = True
                 else:
                     is_moving, obstacle_avoidance = navigate_robot(angle_deg, back_center, goal, calcDist(goal, arrow_center), 30, is_moving,obstacle_avoidance,arrow_center, cross_center)
-                    if calcDist(goal, arrow_center) <= 40:
+                    if calcDist(goal, arrow_center) <= 30:
                         message = "EJECT"
                         s.send(message.encode('utf-8'))
                         closest_ball_saved = None
