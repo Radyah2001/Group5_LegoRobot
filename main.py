@@ -22,7 +22,7 @@ port = 1060  # Make sure it's within the > 1024 $$ <65535 range
 s = socket.socket()
 s.connect((host, port))
 
-
+'''
 def turn_robot(robot_angle, back_coord, target_coord, isMoving):
     # calculate differences in x and y coordinates
     diff_x = target_coord[0] - back_coord[0]
@@ -72,6 +72,55 @@ def move_robot(distance, target_distance, is_moving):
         moving = False
         s.send(message.encode('utf-8'))
         return moving
+    return is_moving
+'''
+def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
+    # calculate differences in x and y coordinates
+    diff_x = target_coord[0] - back_coord[0]
+    diff_y = target_coord[1] - back_coord[1]
+
+    # calculate angle in radians
+    angle_rad = math.atan2(-diff_y, diff_x)
+
+    # calculate distance
+    dist = back_coord[0] - target_coord[0]
+
+    # convert angle to degrees
+    target_angle = (math.degrees(angle_rad) + 360) % 360
+
+    angle_difference = target_angle - robot_angle
+    if angle_difference > 180:
+        angle_difference -= 360
+    elif angle_difference < -180:
+        angle_difference += 360
+
+    if -3 <= angle_difference <= 3:  # Close enough to target
+        message = "STOP"
+        s.send(message.encode('utf-8'))
+        is_moving = False
+    else:
+        if angle_difference > 0:
+            message = "LEFT"
+        else:
+            message = "RIGHT"
+        s.send(message.encode('utf-8'))
+        is_moving = True
+
+    # Only move if robot is already facing target
+    if not is_moving:
+        if 5 < distance < 20:
+            message = "FAST"
+            is_moving = True
+            s.send(message.encode('utf-8'))
+        elif distance > target_distance:
+            message = "FORWARD"
+            is_moving = True
+            s.send(message.encode('utf-8'))
+        else:
+            message = "STOP"
+            is_moving = False
+            s.send(message.encode('utf-8'))
+
     return is_moving
 
 
@@ -166,9 +215,7 @@ def main():
                 if calcDist(closest_ball_saved, arrow_center) > calcDist(closest_ball_saved, robot_center) and calcDist(closest_ball_saved, robot_center) <= 50:
                     message = "BACK"
                     s.send(message.encode('utf-8'))
-                is_moving = turn_robot(angle_deg, back_center, closest_ball_saved, is_moving)
-                if is_moving == False:
-                    is_moving = move_robot(calcDist(closest_ball_saved, arrow_center), 5, is_moving)
+                is_moving = navigate_robot(angle_deg,back_center,closest_ball_saved,calcDist(closest_ball_saved, arrow_center), 5, is_moving)
                 #elif calcBallDist(closest_ball_saved, arrow_center) <= 20:
                 #    message = "FORWARD"
                 #    s.send(message.encode('utf-8'))
@@ -178,15 +225,11 @@ def main():
                     s.send(message.encode('utf-8'))
             elif closest_ball is None and goal is not None:
                 if not checkpoint_reached:
-                    is_moving = turn_robot(angle_deg, back_center, checkpoint, is_moving)
-                    if is_moving == False:
-                        is_moving = move_robot(calcDist(checkpoint, arrow_center), 15, is_moving)
-                        if calcDist(checkpoint,arrow_center) <= 15:
-                            checkpoint_reached = True
+                    is_moving = navigate_robot(angle_deg,back_center,checkpoint,calcDist(checkpoint,arrow_center),15, is_moving)
+                    if calcDist(checkpoint,arrow_center) <= 15:
+                        checkpoint_reached = True
                 else:
-                    is_moving = turn_robot(angle_deg, back_center, goal, is_moving)
-                    if is_moving == False:
-                        is_moving = move_robot(calcDist(goal, arrow_center), 30, is_moving)
+                    navigate_robot(angle_deg,back_center, goal, calcDist(goal,arrow_center), 30, is_moving)
                     if calcDist(goal, arrow_center) <= 40:
                         message = "EJECT"
                         s.send(message.encode('utf-8'))
