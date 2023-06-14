@@ -74,7 +74,12 @@ def move_robot(distance, target_distance, is_moving):
         return moving
     return is_moving
 '''
-def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
+
+
+def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving, cross_center, offset = (50, 50)):
+    if is_cross_between(target_coord, back_coord, cross_center):
+        # calculate an offset target to avoid the cross
+        target_coord = (target_coord[0] + offset[0], target_coord[1] + offset[1])
     # calculate differences in x and y coordinates
     diff_x = target_coord[0] - back_coord[0]
     diff_y = target_coord[1] - back_coord[1]
@@ -124,7 +129,16 @@ def navigate_robot(robot_angle, back_coord, target_coord, distance, target_dista
     return is_moving
 
 
-def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds, cross_center):
+def is_cross_between(target_coord, back_coord, cross_center, tolerance=10):
+    dist_robot_target = calcDist(target_coord, back_coord)
+    dist_robot_cross = calcDist(cross_center, back_coord)
+    dist_target_cross = calcDist(target_coord, cross_center)
+
+    return dist_robot_cross + dist_target_cross - tolerance <= dist_robot_target
+
+
+def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds,
+                      cross_center):
     for i in range(len(detections)):
         xyxy = detections.xyxy[i]
         center_x = (xyxy[0] + xyxy[2]) / 2
@@ -147,7 +161,7 @@ def handle_detections(detections, robot_center, arrow_center, back_center, close
             y_center = (xyxy[1] + xyxy[3]) / 2  # calculate y center of the bound
             bounds.append((x_center, y_center))  # save the x and y coordinates of the bounds
         elif class_id == 5:
-            cross_center = (center_x,center_y)
+            cross_center = (center_x, center_y)
     return robot_center, arrow_center, closest_ball, back_center, cross_center
 
 
@@ -192,10 +206,14 @@ def main():
         if ret:
             result = model(frame, conf=CONF, iou=IOU)[0]
             detections = sv.Detections.from_yolov8(result)
-            robot_center, arrow_center, closest_ball, back_center, cross_center = handle_detections(detections, robot_center,
-                                                                                      arrow_center,
-                                                                                      back_center, closest_ball,
-                                                                                      closest_ball_distance, bounds, cross_center)
+            robot_center, arrow_center, closest_ball, back_center, cross_center = handle_detections(detections,
+                                                                                                    robot_center,
+                                                                                                    arrow_center,
+                                                                                                    back_center,
+                                                                                                    closest_ball,
+                                                                                                    closest_ball_distance,
+                                                                                                    bounds,
+                                                                                                    cross_center)
             goal, checkpoint = find_goal(goal, bounds, checkpoint)
             angle_deg = find_robot_angle(back_center, arrow_center)
             if goal is not None:
@@ -212,11 +230,13 @@ def main():
             if closest_ball is not None and back_center is not None and angle_deg is not None:
                 if closest_ball_saved is None:
                     closest_ball_saved = closest_ball
-                if calcDist(closest_ball_saved, arrow_center) > calcDist(closest_ball_saved, robot_center) and calcDist(closest_ball_saved, robot_center) <= 50:
+                if calcDist(closest_ball_saved, arrow_center) > calcDist(closest_ball_saved, robot_center) and calcDist(
+                        closest_ball_saved, robot_center) <= 50:
                     message = "BACK"
                     s.send(message.encode('utf-8'))
-                is_moving = navigate_robot(angle_deg,back_center,closest_ball_saved,calcDist(closest_ball_saved, arrow_center), 5, is_moving)
-                #elif calcBallDist(closest_ball_saved, arrow_center) <= 20:
+                is_moving = navigate_robot(angle_deg, back_center, closest_ball_saved,
+                                           calcDist(closest_ball_saved, arrow_center), 5, is_moving,cross_center)
+                # elif calcBallDist(closest_ball_saved, arrow_center) <= 20:
                 #    message = "FORWARD"
                 #    s.send(message.encode('utf-8'))
                 if calcDist(closest_ball_saved, arrow_center) <= 5:
@@ -225,11 +245,12 @@ def main():
                     s.send(message.encode('utf-8'))
             elif closest_ball is None and goal is not None:
                 if not checkpoint_reached:
-                    is_moving = navigate_robot(angle_deg,back_center,checkpoint,calcDist(checkpoint,arrow_center),15, is_moving)
-                    if calcDist(checkpoint,arrow_center) <= 15:
+                    is_moving = navigate_robot(angle_deg, back_center, checkpoint, calcDist(checkpoint, arrow_center),
+                                               15, is_moving, cross_center)
+                    if calcDist(checkpoint, arrow_center) <= 15:
                         checkpoint_reached = True
                 else:
-                    navigate_robot(angle_deg,back_center, goal, calcDist(goal,arrow_center), 30, is_moving)
+                    navigate_robot(angle_deg, back_center, goal, calcDist(goal, arrow_center), 30, is_moving, cross_center)
                     if calcDist(goal, arrow_center) <= 40:
                         message = "EJECT"
                         s.send(message.encode('utf-8'))
