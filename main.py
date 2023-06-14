@@ -124,7 +124,7 @@ def navigate_robot(robot_angle, back_coord, target_coord, distance, target_dista
                 obstacle_avoidance = False
 
     # Only move if robot is already facing target
-    if not is_moving:
+    if not is_moving and not obstacle_avoidance:
         if 5 < distance < 20:
             message = "FAST"
             is_moving = True
@@ -138,7 +138,7 @@ def navigate_robot(robot_angle, back_coord, target_coord, distance, target_dista
             is_moving = False
             s.send(message.encode('utf-8'))
 
-    return is_moving
+    return is_moving, obstacle_avoidance
 
 
 def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds,
