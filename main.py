@@ -220,7 +220,7 @@ def main():
                         closest_ball_saved, robot_center) <= 50:
                     message = "BACK"
                     s.send(message.encode('utf-8'))
-                is_moving, obstacle_avoidance, turn_counter = navigate_robot(angle_deg, back_center, closest_ball_saved,
+                is_moving = navigate_robot(angle_deg, back_center, closest_ball_saved,
                                            calcDist(closest_ball_saved, arrow_center), 5, is_moving)
                 # elif calcBallDist(closest_ball_saved, arrow_center) <= 20:
                 #    message = "FORWARD"
@@ -231,12 +231,12 @@ def main():
                     s.send(message.encode('utf-8'))
             elif closest_ball is None and goal is not None:
                 if not checkpoint_reached:
-                    is_moving, obstacle_avoidance, turn_counter = navigate_robot(angle_deg, back_center, checkpoint, calcDist(checkpoint, arrow_center),
+                    is_moving = navigate_robot(angle_deg, back_center, checkpoint, calcDist(checkpoint, arrow_center),
                                                15, is_moving)
                     if calcDist(checkpoint, arrow_center) <= 15:
                         checkpoint_reached = True
                 else:
-                    is_moving, obstacle_avoidance, turn_counter = navigate_robot(angle_deg, back_center, goal, calcDist(goal, arrow_center), 30, is_moving)
+                    is_moving = navigate_robot(angle_deg, back_center, goal, calcDist(goal, arrow_center), 30, is_moving)
                     if calcDist(goal, arrow_center) <= 30:
                         message = "EJECT"
                         s.send(message.encode('utf-8'))
