@@ -71,17 +71,17 @@ def move(tester):
         input.append('100')
 
     if (input[0] == "FORWARD"):
-        tank_pair.on_for_rotations(SpeedPercent(-50), SpeedPercent(-50), 100, block=False)
+        tank_pair.on(SpeedPercent(-50), SpeedPercent(-50))
     elif (input[0] == "FAST"):
         tank_pair.on_for_degrees(SpeedPercent(-80), SpeedPercent(-80), 360, block=True)
     elif (input[0] == "BACK"):
-        tank_pair.on_for_rotations(SpeedPercent(50), SpeedPercent(50), 100, block=False)
+        tank_pair.on(SpeedPercent(50), SpeedPercent(50))
     elif (input[0] == "RIGHT"):
-        tank_pair.on_for_rotations(SpeedPercent(-10), SpeedPercent(10), 100, block=False)
+        tank_pair.on(SpeedPercent(-10), SpeedPercent(10))
     elif (input[0] == "LEFT"):
-        tank_pair.on_for_rotations(SpeedPercent(10), SpeedPercent(-10), 100, block=False)
+        tank_pair.on(SpeedPercent(10), SpeedPercent(-10))
     elif (input[0] == "SPIN"):
-        scoop.on(SpeedPercent(25), block=False)
+        scoop.on(SpeedPercent(25))
         # scoop.on_for_degrees(SpeedPercent(25),200,block=False)
     elif (input[0] == "EJECT"):
         tank_pair.stop()
