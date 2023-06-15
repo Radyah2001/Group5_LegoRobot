@@ -144,6 +144,7 @@ def main():
     message = "SPIN"
     s.send(message.encode('utf-8'))
     offset = None
+    goToOffset = False
     while video.isOpened():
         closest_ball = None
         closest_ball_distance = float('inf')
@@ -182,9 +183,15 @@ def main():
                 if closest_ball_saved is None:
                     closest_ball_saved = closest_ball
                 if calcDist(cross_center, arrow_center) <= 100:  # When front of robot is close to cross_center
-                    second_closest_offset = get_second_closest_offset(cross_center, closest_ball_saved)
-                    navigate_robot(angle_deg, back_center, second_closest_offset,
-                                   calcDist(second_closest_offset, arrow_center), 5, is_moving)
+                    offset = get_second_closest_offset(cross_center, closest_ball_saved)
+                    goToOffset = True
+                if goToOffset is not None and True:
+                    navigate_robot(angle_deg, back_center, offset,
+                                   calcDist(offset, arrow_center), 5, is_moving)
+                    if calcDist(offset, arrow_center) < 5:
+                        goToOffset = False
+
+
 
                 if calcDist(closest_ball_saved, arrow_center) > calcDist(closest_ball_saved, robot_center) and calcDist(
                         closest_ball_saved, robot_center) <= 50:
