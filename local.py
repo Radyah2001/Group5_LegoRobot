@@ -1,6 +1,8 @@
 from ultralytics import YOLO
 import cv2
 
+# model class ids
+# 0: 'Back', 1: 'Ball orange', 2: 'Ball white', 3: 'Bounds', 4: 'Corner', 5: 'Cross', 6: 'Front', 7: 'Robot'
 # load config
 import json
 with open('VideoSourceConfig.json') as f:
