@@ -7,6 +7,7 @@ from ev3dev2.led import Leds
 from ev3dev2.sound import Sound
 from time import sleep
 import socket
+import select
 
 # cannot be used for this version
 # from pybricks.hubs import EV3Brick
@@ -68,18 +69,24 @@ def move(tester):
     input = tester.split(" ")
     if (len(input) == 1):
         input.append('100')
+
     if (input[0] == "FORWARD"):
-        tank_pair.on_for_rotations(SpeedPercent(-int(input[1])), SpeedPercent(-int(input[1])), 100, block=False)
+        tank_pair.on_for_rotations(SpeedPercent(-50), SpeedPercent(-50), 100, block=False)
+    elif (input[0] == "FAST"):
+        tank_pair.on_for_degrees(SpeedPercent(-80), SpeedPercent(-80), 360, block=True)
     elif (input[0] == "BACK"):
-        tank_pair.on_for_rotations(SpeedPercent(int(input[1])), SpeedPercent(int(input[1])), 100, block=False)
+        tank_pair.on_for_rotations(SpeedPercent(50), SpeedPercent(50), 100, block=False)
     elif (input[0] == "RIGHT"):
-        tank_pair.on_for_rotations(SpeedPercent(-int(input[1])), SpeedPercent(int(input[1])), 100, block=False)
+        tank_pair.on_for_rotations(SpeedPercent(-10), SpeedPercent(10), 100, block=False)
     elif (input[0] == "LEFT"):
-        tank_pair.on_for_rotations(SpeedPercent(int(input[1])), SpeedPercent(-int(input[1])), 100, block=False)
+        tank_pair.on_for_rotations(SpeedPercent(10), SpeedPercent(-10), 100, block=False)
     elif (input[0] == "SPIN"):
-        scoop.on(SpeedPercent(int(input[1])), block=False)
+        scoop.on(SpeedPercent(25), block=False)
+        # scoop.on_for_degrees(SpeedPercent(25),200,block=False)
     elif (input[0] == "EJECT"):
-        scoop.on_for_seconds(SpeedPercent(-30), int(input[1]))
+        tank_pair.stop()
+        scoop.on_for_seconds(SpeedPercent(-30), 5)
+        # scoop.on_for_degrees(SpeedPercent(-30),800)
         tank_pair.on_for_rotations(SpeedPercent(80), SpeedPercent(80), 1)
         scoop.on(SpeedPercent(25), block=False)
     elif (input[0] == "SPINOFF"):
@@ -97,6 +104,21 @@ def move(tester):
     else:
         print('nope')
 
+        """
+    switcher = {
+      "FORWARD": tank_pair.on_for_rotations(SpeedPercent(-50),SpeedPercent(-50),100,block=False)
+      "FAST":tank_pair.on_for_degrees(SpeedPercent(-80),SpeedPercent(-80),360,block=True)
+      "BACK":tank_pair.on_for_rotations(SpeedPercent(50),SpeedPercent(50),100,block=False)
+      "RIGHT":tank_pair.on_for_rotations(SpeedPercent(-10),SpeedPercent(10),100,block=False)
+      "LEFT":tank_pair.on_for_rotations(SpeedPercent(10),SpeedPercent(-10),100,block=False)
+      "SPIN":scoop.on(SpeedPercent(25),block=False)
+      "EJECT":
+      "SPINOFF":
+      "STOP":
+      "FIX":
+    }  
+    """
+
 
 def stalled_or_overloaded(motor):
     return 'stalled' in motor.state or 'overloaded' in motor.state
@@ -108,7 +130,7 @@ def server():
     host = "192.168.43.168"  # get local machine name
     port = 1060  # Make sure it's within the > 1024 $$ <65535 range
 
-    s = socket.socket()
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind((host, port))
 
     s.listen(1)
@@ -119,9 +141,9 @@ def server():
         data = client_socket.recv(1024).decode('utf-8')
         if not data:
             break
+        move(data)
         data = data.upper()
         client_socket.send(data.encode('utf-8'))
-        move(data)
         print(data)
     client_socket.close()
 
