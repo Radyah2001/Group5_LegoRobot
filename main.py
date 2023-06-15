@@ -19,38 +19,15 @@ port = 1060  # Make sure it's within the > 1024 $$ <65535 range
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((host, port))
 
-'''
-def turn_robot(robot_angle, back_coord, target_coord, isMoving):
-    # calculate differences in x and y coordinates
-    diff_x = target_coord[0] - back_coord[0]
-    diff_y = target_coord[1] - back_coord[1]
 
-    # calculate angle in radians
-    angle_rad = math.atan2(-diff_y, diff_x)
+def turn_robot(angle_difference):
 
-    # calculate distance
-    dist = back_coord[0] - target_coord[0]
-
-    # convert angle to degrees
-    target_angle = (math.degrees(angle_rad) + 360) % 360
-
-    angle_difference = target_angle - robot_angle
-    if angle_difference > 180:
-        angle_difference -= 360
-    elif angle_difference < -180:
-        angle_difference += 360
-
-    if -3 <= angle_difference <= 3:  # Close enough to target
-        message = "STOP"
-        s.send(message.encode('utf-8'))
-        return False
+    if angle_difference > 0:
+        message = "LEFT"
     else:
-        if angle_difference > 0:
-            message = "LEFT"
-        else:
-            message = "RIGHT"
-        s.send(message.encode('utf-8'))
-        return True
+        message = "RIGHT"
+    s.send(message.encode('utf-8'))
+    return
 
 
 def move_robot(distance, target_distance, is_moving):
@@ -70,10 +47,28 @@ def move_robot(distance, target_distance, is_moving):
         s.send(message.encode('utf-8'))
         return moving
     return is_moving
-'''
 
+def checkAngle(robot_angle, target_coord, back_coord):
+    # calculate differences in x and y coordinates
+    diff_x = target_coord[0] - back_coord[0]
+    diff_y = target_coord[1] - back_coord[1]
+    # calculate angle in radians
+    angle_rad = math.atan2(-diff_y, diff_x)
+    # convert angle to degrees
+    target_angle = (math.degrees(angle_rad) + 360) % 360
 
-def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
+    angle_difference = target_angle - robot_angle
+    if angle_difference > 180:
+        angle_difference -= 360
+    elif angle_difference < -180:
+        angle_difference += 360
+
+    if -3 <= angle_difference <= 3:  # Close enough to target
+        return True, angle_difference
+    else:
+        return False, angle_difference
+
+'''def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
     # calculate differences in x and y coordinates
     diff_x = target_coord[0] - back_coord[0]
     diff_y = target_coord[1] - back_coord[1]
@@ -120,6 +115,17 @@ def navigate_robot(robot_angle, back_coord, target_coord, distance, target_dista
             is_moving = False
             s.send(message.encode('utf-8'))
 
+    return is_moving'''
+
+def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
+
+    onTarget, angleDif = checkAngle(robot_angle, target_coord, back_coord)
+    if onTarget:
+        move_robot(distance, target_distance, is_moving)
+    else:
+        turn_robot(angleDif)
+        message = "STOP"
+        s.send(message.encode('utf-8'))
     return is_moving
 
 
