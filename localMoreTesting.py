@@ -190,6 +190,7 @@ def main():
                                    calcDist(offset, arrow_center), 10, is_moving)
                     if calcDist(offset, arrow_center) < 5:
                         goToOffset = False
+                    continue
 
 
 
@@ -197,8 +198,8 @@ def main():
                         closest_ball_saved, robot_center) <= 50:
                     message = "BACK"
                     s.send(message.encode('utf-8'))
-                if goToOffset is False:
-                    is_moving = navigate_robot(angle_deg, back_center, closest_ball_saved,
+
+                is_moving = navigate_robot(angle_deg, back_center, closest_ball_saved,
                                            calcDist(closest_ball_saved, arrow_center),
                                            5, is_moving)
                 # elif calcBallDist(closest_ball_saved, arrow_center) <= 20:
