@@ -182,7 +182,7 @@ def main():
             if closest_ball is not None and back_center is not None and angle_deg is not None:
                 if closest_ball_saved is None:
                     closest_ball_saved = closest_ball
-                if calcDist(cross_center, arrow_center) <= 100:  # When front of robot is close to cross_center
+                if calcDist(cross_center, arrow_center) <= 80 and calcDist(closest_ball_saved,arrow_center) > calcDist(closest_ball_saved, cross_center):  # When front of robot is close to cross_center
                     offset = get_second_closest_offset(cross_center, closest_ball_saved)
                     goToOffset = True
                 if goToOffset is not None and True:
