@@ -73,7 +73,7 @@ def move_robot(distance, target_distance, is_moving):
 '''
 
 
-def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving, obstacle_avoidance,arrow_center, obstacle_coord=None, turn_counter=0):
+def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
     # calculate differences in x and y coordinates
     diff_x = target_coord[0] - back_coord[0]
     diff_y = target_coord[1] - back_coord[1]
@@ -105,32 +105,8 @@ def navigate_robot(robot_angle, back_coord, target_coord, distance, target_dista
         s.send(message.encode('utf-8'))
         is_moving = True
 
-    # Obstacle avoidance logic
-    if obstacle_coord is not None:
-        obstacle_dist = calcDist(obstacle_coord,arrow_center)
-        if obstacle_dist < 100:  # threshold distance to avoid obstacle
-            if not obstacle_avoidance:
-                if angle_difference > 0:
-                    message = "RIGHT"  # turn right to avoid obstacle
-                else:
-                    message = "LEFT"  # turn left to avoid obstacle
-                s.send(message.encode('utf-8'))
-                is_moving = True
-                turn_counter += 1
-                if turn_counter > 5:
-                    obstacle_avoidance = True
-            else:  # If we have already turned, let's move forward
-                if turn_counter >= 6:  # adjust this value as needed
-                    message = "FORWARD"
-                    s.send(message.encode('utf-8'))
-                    is_moving = True
-                    obstacle_avoidance = False
-                    turn_counter = 0  # reset the counter
-                else:
-                    turn_counter += 1
-
     # Only move if robot is already facing target
-    if not is_moving and not obstacle_avoidance:
+    if not is_moving:
         if 5 < distance < 15:
             message = "FAST"
             is_moving = True
@@ -144,7 +120,7 @@ def navigate_robot(robot_angle, back_coord, target_coord, distance, target_dista
             is_moving = False
             s.send(message.encode('utf-8'))
 
-    return is_moving, obstacle_avoidance, turn_counter
+    return is_moving
 
 
 def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds,
@@ -208,8 +184,6 @@ def main():
     robot_center, arrow_center, back_center, goal, cross_center, checkpoint = None, None, None, None, None, None
     message = "SPIN"
     s.send(message.encode('utf-8'))
-    obstacle_avoidance = False
-    turn_counter = 0
     while video.isOpened():
         closest_ball = None
         closest_ball_distance = float('inf')
@@ -247,7 +221,7 @@ def main():
                     message = "BACK"
                     s.send(message.encode('utf-8'))
                 is_moving, obstacle_avoidance, turn_counter = navigate_robot(angle_deg, back_center, closest_ball_saved,
-                                           calcDist(closest_ball_saved, arrow_center), 5, is_moving, obstacle_avoidance,arrow_center, cross_center, turn_counter)
+                                           calcDist(closest_ball_saved, arrow_center), 5, is_moving)
                 # elif calcBallDist(closest_ball_saved, arrow_center) <= 20:
                 #    message = "FORWARD"
                 #    s.send(message.encode('utf-8'))
@@ -258,11 +232,11 @@ def main():
             elif closest_ball is None and goal is not None:
                 if not checkpoint_reached:
                     is_moving, obstacle_avoidance, turn_counter = navigate_robot(angle_deg, back_center, checkpoint, calcDist(checkpoint, arrow_center),
-                                               15, is_moving, obstacle_avoidance,arrow_center, cross_center, turn_counter)
+                                               15, is_moving)
                     if calcDist(checkpoint, arrow_center) <= 15:
                         checkpoint_reached = True
                 else:
-                    is_moving, obstacle_avoidance, turn_counter = navigate_robot(angle_deg, back_center, goal, calcDist(goal, arrow_center), 30, is_moving,obstacle_avoidance,arrow_center, cross_center, turn_counter)
+                    is_moving, obstacle_avoidance, turn_counter = navigate_robot(angle_deg, back_center, goal, calcDist(goal, arrow_center), 30, is_moving)
                     if calcDist(goal, arrow_center) <= 30:
                         message = "EJECT"
                         s.send(message.encode('utf-8'))
