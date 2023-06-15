@@ -21,13 +21,18 @@ s.connect((host, port))
 
 
 def turn_robot(angle_difference):
-
-    if angle_difference > 0:
+    turning = False
+    if angle_difference > 2:
         message = "LEFT"
-    else:
+        turning = True
+    elif angle_difference < 2:
         message = "RIGHT"
+        turning = True
+    else:
+        message = "STOP"
+        turning = False
     s.send(message.encode('utf-8'))
-    return
+    return turning
 
 
 def move_robot(distance, target_distance, is_moving):
@@ -63,7 +68,7 @@ def checkAngle(robot_angle, target_coord, back_coord):
     elif angle_difference < -180:
         angle_difference += 360
 
-    if -3 <= angle_difference <= 3:  # Close enough to target
+    if -2 <= angle_difference <= 2:  # Close enough to target
         return True, angle_difference
     else:
         return False, angle_difference
@@ -117,17 +122,6 @@ def checkAngle(robot_angle, target_coord, back_coord):
 
     return is_moving'''
 
-def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
-
-    onTarget, angleDif = checkAngle(robot_angle, target_coord, back_coord)
-    if onTarget:
-        move_robot(distance, target_distance, is_moving)
-    else:
-        turn_robot(angleDif)
-        message = "STOP"
-        s.send(message.encode('utf-8'))
-    return is_moving
-
 
 def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds,
                       cross_center):
@@ -178,6 +172,21 @@ def find_robot_angle(back_center, arrow_center):
         print("Robot is facing at angle:", angle_deg, "degrees")
         return angle_deg
     return None
+
+def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
+
+    onTarget, angleDif = checkAngle(robot_angle, target_coord, back_coord)
+
+    if onTarget:
+        if is_moving == False:
+            message = "STOP"
+            s.send(message.encode('utf-8'))
+        is_moving = move_robot(distance, target_distance, is_moving)
+    else:
+        is_turning = turn_robot(angleDif)
+        is_moving = False
+    return is_moving
+
 
 
 def main():
@@ -231,7 +240,7 @@ def main():
                 # elif calcBallDist(closest_ball_saved, arrow_center) <= 20:
                 #    message = "FORWARD"
                 #    s.send(message.encode('utf-8'))
-                if calcDist(closest_ball_saved, arrow_center) <= 5:
+                if calcDist(closest_ball_saved, arrow_center) <= 10:
                     closest_ball_saved = None
                     message = "STOP"
                     s.send(message.encode('utf-8'))

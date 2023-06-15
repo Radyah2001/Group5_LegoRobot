@@ -163,8 +163,8 @@ def main():
                                                                                                     cross_center)
             goal, checkpoint = find_goal(goal, bounds, checkpoint)
             angle_deg = find_robot_angle(back_center, arrow_center)
-            if cross_center is not None:
-                offset = get_second_closest_offset(cross_center,closest_ball)
+            if cross_center is not None and closest_ball is not None:
+                offset = get_second_closest_offset(cross_center, closest_ball)
                 cv2.circle(frame, (int(offset[0]), int(offset[1])), radius=10, color=(0, 0, 255),
                            thickness=-1)
 
@@ -185,7 +185,7 @@ def main():
                 if calcDist(cross_center, arrow_center) <= 50 and calcDist(closest_ball_saved,arrow_center) > calcDist(closest_ball_saved, cross_center):  # When front of robot is close to cross_center
                     offset = get_second_closest_offset(cross_center, closest_ball_saved)
                     goToOffset = True
-                if goToOffset is not None and True:
+                if offset is not None and goToOffset == True:
                     is_moving = navigate_robot(angle_deg, back_center, offset,
                                    calcDist(offset, arrow_center), 10, is_moving)
                     if calcDist(offset, arrow_center) < 15:
