@@ -53,6 +53,7 @@ def move_robot(distance, target_distance, is_moving):
         return moving
     return is_moving
 
+
 def checkAngle(robot_angle, target_coord, back_coord):
     # calculate differences in x and y coordinates
     diff_x = target_coord[0] - back_coord[0]
@@ -72,6 +73,7 @@ def checkAngle(robot_angle, target_coord, back_coord):
         return True, angle_difference
     else:
         return False, angle_difference
+
 
 '''def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
     # calculate differences in x and y coordinates
@@ -123,8 +125,8 @@ def checkAngle(robot_angle, target_coord, back_coord):
     return is_moving'''
 
 
-def handle_detections(detections, robot_center, arrow_center, back_center, closest_ball, closest_ball_distance, bounds,
-                      cross_center):
+def handle_detections(detections, robot_center, arrow_center, back_center, bounds,
+                      cross_center, balls):
     for i in range(len(detections)):
         xyxy = detections.xyxy[i]
         center_x = (xyxy[0] + xyxy[2]) / 2
@@ -137,18 +139,23 @@ def handle_detections(detections, robot_center, arrow_center, back_center, close
         elif np.isin(0, class_id):
             back_center = (center_x, center_y)
         elif class_id in [1, 2]:
-            if robot_center is not None:
-                distance = math.sqrt((center_x - robot_center[0]) ** 2 + (center_y - robot_center[1]) ** 2)
-                if distance < closest_ball_distance:
-                    closest_ball = (center_x, center_y)
-                    closest_ball_distance = distance
+            balls.append((center_x, center_y))
         elif class_id == 3:
             x_center = (xyxy[0] + xyxy[2]) / 2  # calculate x center of the bound
             y_center = (xyxy[1] + xyxy[3]) / 2  # calculate y center of the bound
             bounds.append((x_center, y_center))  # save the x and y coordinates of the bounds
         elif class_id == 5:
             cross_center = (center_x, center_y)
-    return robot_center, arrow_center, closest_ball, back_center, cross_center
+    return robot_center, arrow_center, back_center, cross_center
+
+
+def calc_closest_ball(balls, north, west, south, east, robot_center,closest_ball , closest_ball_distance):
+    for ball in balls:
+        distance = math.sqrt((ball[0] - robot_center[0]) ** 2 + (ball[1] - robot_center[1]) ** 2)
+        if distance < closest_ball_distance and ball[0] > west[0]+10 and ball[0] < east[0]-10 and ball[1] < north[1]-10 and ball[1] > south[0]-10:
+            closest_ball = (ball[0], ball[1])
+            closest_ball_distance = distance
+        return closest_ball
 
 
 def calcDist(target, frontArrow):
@@ -173,8 +180,8 @@ def find_robot_angle(back_center, arrow_center):
         return angle_deg
     return None
 
-def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
 
+def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
     onTarget, angleDif = checkAngle(robot_angle, target_coord, back_coord)
 
     if onTarget:
@@ -187,6 +194,7 @@ def navigate_robot(robot_angle, back_coord, target_coord, distance, target_dista
         is_moving = False
     return is_moving
 
+
 def get_second_closest_offset(cross_center, target, offset=150):
     offsets = [
         (cross_center[0], cross_center[1] + offset),  # North
@@ -198,17 +206,19 @@ def get_second_closest_offset(cross_center, target, offset=150):
     second_closest_offset_index = sorted(range(len(distances)), key=lambda i: distances[i])[1]
     return offsets[second_closest_offset_index]
 
+
 def get_north_east_south_west(bounds, east, west, north, south):
     for center in bounds:
         if 200 < center[1] < 400 and center[0] > 200:
             east = (center[0], center[1])
-        elif  200 < center[1] < 400 and center[0] < 200:
+        elif 200 < center[1] < 400 and center[0] < 200:
             west = (center[0], center[1])
         elif 200 < center[0] < 400 and center[1] > 200:
             north = (center[0], center[1])
         elif 200 < center[0] < 400 and center[1] < 200:
             south = (center[0], center[1])
     return east, west, north, south
+
 
 def main():
     video = cv2.VideoCapture(INPUT_SOURCE, cv2.CAP_DSHOW)
@@ -223,22 +233,23 @@ def main():
     s.send(message.encode('utf-8'))
     offset = None
     goToOffset = False
+    north, east, south, west = None, None, None, None
     while video.isOpened():
         closest_ball = None
         closest_ball_distance = float('inf')
         bounds = []
+        balls = []
         ret, frame = video.read()
         if ret:
             result = model(frame, conf=CONF, iou=IOU)[0]
             detections = sv.Detections.from_yolov8(result)
-            robot_center, arrow_center, closest_ball, back_center, cross_center = handle_detections(detections,
+            robot_center, arrow_center, back_center, cross_center = handle_detections(detections,
                                                                                                     robot_center,
                                                                                                     arrow_center,
                                                                                                     back_center,
-                                                                                                    closest_ball,
-                                                                                                    closest_ball_distance,
                                                                                                     bounds,
-                                                                                                    cross_center)
+                                                                                                    cross_center, balls)
+            closest_ball = calc_closest_ball(balls,north,west,south,east,robot_center,closest_ball,closest_ball_distance)
             goal, checkpoint = find_goal(goal, bounds, checkpoint)
             angle_deg = find_robot_angle(back_center, arrow_center)
             east, west, north, south = get_north_east_south_west(bounds, east, west, north, south)
@@ -265,7 +276,8 @@ def main():
             if closest_ball is not None and back_center is not None and angle_deg is not None:
                 if closest_ball_saved is None:
                     closest_ball_saved = closest_ball
-                if calcDist(cross_center, arrow_center) <= 60 and calcDist(closest_ball_saved,arrow_center) > calcDist(closest_ball_saved, cross_center):  # When front of robot is close to cross_center
+                if calcDist(cross_center, arrow_center) <= 60 and calcDist(closest_ball_saved, arrow_center) > calcDist(
+                        closest_ball_saved, cross_center):  # When front of robot is close to cross_center
                     offset = get_second_closest_offset(cross_center, closest_ball_saved)
                     goToOffset = True
                 if offset is not None and goToOffset:
@@ -294,7 +306,8 @@ def main():
                     if calcDist(checkpoint, arrow_center) <= 15:
                         checkpoint_reached = True
                 else:
-                    is_moving = navigate_robot(angle_deg, back_center, goal, calcDist(goal, arrow_center), 30, is_moving)
+                    is_moving = navigate_robot(angle_deg, back_center, goal, calcDist(goal, arrow_center), 30,
+                                               is_moving)
                     if calcDist(goal, arrow_center) <= 30:
                         message = "EJECT"
                         s.send(message.encode('utf-8'))
