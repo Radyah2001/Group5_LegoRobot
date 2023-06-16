@@ -198,7 +198,17 @@ def get_second_closest_offset(cross_center, target, offset=150):
     second_closest_offset_index = sorted(range(len(distances)), key=lambda i: distances[i])[1]
     return offsets[second_closest_offset_index]
 
-
+def get_north_east_south_west(bounds, east, west, north, south):
+    for center in bounds:
+        if 200 < center[1] < 400 and center[0] > 200:
+            east = (center[0], center[1])
+        elif  200 < center[1] < 400 and center[0] < 200:
+            west = (center[0], center[1])
+        elif 200 < center[0] < 400 and center[1] > 200:
+            north = (center[0], center[1])
+        elif 200 < center[0] < 400 and center[1] < 200:
+            south = (center[0], center[1])
+    return east, west, north, south
 
 def main():
     video = cv2.VideoCapture(INPUT_SOURCE, cv2.CAP_DSHOW)
@@ -208,6 +218,7 @@ def main():
     closest_ball_saved = None
     is_moving = False
     robot_center, arrow_center, back_center, goal, cross_center, checkpoint = None, None, None, None, None, None
+    north, east, south, west = None, None, None, None
     message = "SPIN"
     s.send(message.encode('utf-8'))
     offset = None
@@ -230,6 +241,12 @@ def main():
                                                                                                     cross_center)
             goal, checkpoint = find_goal(goal, bounds, checkpoint)
             angle_deg = find_robot_angle(back_center, arrow_center)
+            east, west, north, south = get_north_east_south_west(bounds, east, west, north, south)
+            if east is not None and west is not None and north is not None and south is not None:
+                cv2.circle(frame, (int(east[0]), int(east[1])), radius=10, color=(0, 0, 255), thickness=-1)
+                cv2.circle(frame, (int(west[0]), int(west[1])), radius=10, color=(0, 0, 255), thickness=-1)
+                cv2.circle(frame, (int(north[0]), int(north[1])), radius=10, color=(0, 0, 255), thickness=-1)
+                cv2.circle(frame, (int(south[0]), int(south[1])), radius=10, color=(0, 0, 255), thickness=-1)
             if cross_center is not None and closest_ball is not None:
                 offset = get_second_closest_offset(cross_center, closest_ball)
                 cv2.circle(frame, (int(offset[0]), int(offset[1])), radius=10, color=(0, 0, 255),
@@ -248,7 +265,7 @@ def main():
             if closest_ball is not None and back_center is not None and angle_deg is not None:
                 if closest_ball_saved is None:
                     closest_ball_saved = closest_ball
-                if calcDist(cross_center, arrow_center) <= 50 and calcDist(closest_ball_saved,arrow_center) > calcDist(closest_ball_saved, cross_center):  # When front of robot is close to cross_center
+                if calcDist(cross_center, arrow_center) <= 60 and calcDist(closest_ball_saved,arrow_center) > calcDist(closest_ball_saved, cross_center):  # When front of robot is close to cross_center
                     offset = get_second_closest_offset(cross_center, closest_ball_saved)
                     goToOffset = True
                 if offset is not None and goToOffset:
@@ -256,7 +273,7 @@ def main():
                                                calcDist(offset, arrow_center), 10, is_moving)
                     if calcDist(offset, arrow_center) < 15:
                         goToOffset = False
-                        continue
+                    continue
                 if calcDist(closest_ball_saved, arrow_center) > calcDist(closest_ball_saved, robot_center) and calcDist(
                         closest_ball_saved, robot_center) <= 50:
                     message = "BACK"
