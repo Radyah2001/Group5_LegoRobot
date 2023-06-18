@@ -149,10 +149,14 @@ def handle_detections(detections, robot_center, arrow_center, back_center, bound
     return robot_center, arrow_center, back_center, cross_center
 
 
-def calc_closest_ball(balls, north, west, south, east, robot_center,closest_ball , closest_ball_distance):
+def calc_closest_ball(balls, north, west, south, east, robot_center, closest_ball, closest_ball_distance):
     for ball in balls:
         distance = math.sqrt((ball[0] - robot_center[0]) ** 2 + (ball[1] - robot_center[1]) ** 2)
-        if distance < closest_ball_distance and ball[0] > west[0]+10 and ball[0] < east[0]-10 and ball[1] < north[1]-10 and ball[1] > south[0]-10:
+        if distance < closest_ball_distance and west[0] + 10 < ball[0] < east[0] - 10 and north[1] - 10 > ball[1] > \
+                south[0] - 10 and north is not None and west is not None and east is not None and south is not None:
+            closest_ball = (ball[0], ball[1])
+            closest_ball_distance = distance
+        elif distance < closest_ball_distance:
             closest_ball = (ball[0], ball[1])
             closest_ball_distance = distance
         return closest_ball
@@ -244,12 +248,13 @@ def main():
             result = model(frame, conf=CONF, iou=IOU)[0]
             detections = sv.Detections.from_yolov8(result)
             robot_center, arrow_center, back_center, cross_center = handle_detections(detections,
-                                                                                                    robot_center,
-                                                                                                    arrow_center,
-                                                                                                    back_center,
-                                                                                                    bounds,
-                                                                                                    cross_center, balls)
-            closest_ball = calc_closest_ball(balls,north,west,south,east,robot_center,closest_ball,closest_ball_distance)
+                                                                                      robot_center,
+                                                                                      arrow_center,
+                                                                                      back_center,
+                                                                                      bounds,
+                                                                                      cross_center, balls)
+            closest_ball = calc_closest_ball(balls, north, west, south, east, robot_center, closest_ball,
+                                             closest_ball_distance)
             goal, checkpoint = find_goal(goal, bounds, checkpoint)
             angle_deg = find_robot_angle(back_center, arrow_center)
             east, west, north, south = get_north_east_south_west(bounds, east, west, north, south)
