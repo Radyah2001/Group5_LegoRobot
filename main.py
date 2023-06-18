@@ -152,11 +152,8 @@ def handle_detections(detections, robot_center, arrow_center, back_center, bound
 def calc_closest_ball(balls, north, west, south, east, robot_center, closest_ball, closest_ball_distance):
     for ball in balls:
         distance = math.sqrt((ball[0] - robot_center[0]) ** 2 + (ball[1] - robot_center[1]) ** 2)
-        if distance < closest_ball_distance and west[0] + 20 < ball[0] < east[0] - 20 and north[1] - 20 > ball[1] > \
-                south[0] - 20:
-            closest_ball = (ball[0], ball[1])
-            closest_ball_distance = distance
-        elif distance < closest_ball_distance:
+        if distance < closest_ball_distance and west[0] + 20 < ball[0] < east[0] - 20 and south[1] - 20 > ball[1] > \
+                north[1] + 20:
             closest_ball = (ball[0], ball[1])
             closest_ball_distance = distance
     return closest_ball
