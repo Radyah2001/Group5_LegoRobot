@@ -227,9 +227,9 @@ def get_north_east_south_west(bounds, east, west, north, south):
         elif 200 < center[1] < 400 and center[0] < 200:
             west = (center[0], center[1])
         elif 200 < center[0] < 400 and center[1] > 200:
-            north = (center[0], center[1])
-        elif 200 < center[0] < 400 and center[1] < 200:
             south = (center[0], center[1])
+        elif 200 < center[0] < 400 and center[1] < 200:
+            north = (center[0], center[1])
     return east, west, north, south
 
 
@@ -262,6 +262,7 @@ def main():
                                                                                       back_center,
                                                                                       bounds,
                                                                                       cross_center, balls)
+            east, west, north, south = get_north_east_south_west(bounds, east, west, north, south)
             if north is not None and west is not None and east is not None and south is not None and robot_center is not None:
                 closest_ball = calc_closest_ball(balls, north, west, south, east, robot_center, closest_ball,
                                                  closest_ball_distance)
@@ -270,7 +271,6 @@ def main():
 
             goal, checkpoint = find_goal(goal, bounds, checkpoint)
             angle_deg = find_robot_angle(back_center, arrow_center)
-            east, west, north, south = get_north_east_south_west(bounds, east, west, north, south)
             if east is not None and west is not None and north is not None and south is not None:
                 cv2.circle(frame, (int(east[0]), int(east[1])), radius=10, color=(0, 0, 255), thickness=-1)
                 cv2.circle(frame, (int(west[0]), int(west[1])), radius=10, color=(0, 0, 255), thickness=-1)
