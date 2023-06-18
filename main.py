@@ -6,20 +6,20 @@ import numpy as np
 import math
 import json
 
+# Load the config for the video source
 with open('VideoSourceConfig.json') as f:
     config = json.load(f)
-
 CONF = config["CONF"]
 IOU = config["IOU"]
 INPUT_SOURCE = config["InputSource"]
 
+# Connecting to robot server
 host = "192.168.43.168"  # get local machine name
 port = 1060  # Make sure it's within the > 1024 $$ <65535 range
-
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((host, port))
 
-
+# Function to turn the robot based on angle difference
 def turn_robot(angle_difference):
     turning = False
     if angle_difference > 2:
@@ -34,7 +34,7 @@ def turn_robot(angle_difference):
     s.send(message.encode('utf-8'))
     return turning
 
-
+# Funktion to move the robot based on the distance to target
 def move_robot(distance, target_distance, is_moving):
     if 5 < distance < 20:
         message = "FAST"
@@ -53,7 +53,7 @@ def move_robot(distance, target_distance, is_moving):
         return moving
     return is_moving
 
-
+# Checking the angle between the robot and the target
 def checkAngle(robot_angle, target_coord, back_coord):
     # calculate differences in x and y coordinates
     diff_x = target_coord[0] - back_coord[0]
@@ -75,56 +75,7 @@ def checkAngle(robot_angle, target_coord, back_coord):
         return False, angle_difference
 
 
-'''def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
-    # calculate differences in x and y coordinates
-    diff_x = target_coord[0] - back_coord[0]
-    diff_y = target_coord[1] - back_coord[1]
-
-    # calculate angle in radians
-    angle_rad = math.atan2(-diff_y, diff_x)
-
-    # calculate distance
-    dist = back_coord[0] - target_coord[0]
-
-    # convert angle to degrees
-    target_angle = (math.degrees(angle_rad) + 360) % 360
-
-    angle_difference = target_angle - robot_angle
-    if angle_difference > 180:
-        angle_difference -= 360
-    elif angle_difference < -180:
-        angle_difference += 360
-
-    if -3 <= angle_difference <= 3:  # Close enough to target
-        message = "STOP"
-        s.send(message.encode('utf-8'))
-        is_moving = False
-    else:
-        if angle_difference > 0:
-            message = "LEFT"
-        else:
-            message = "RIGHT"
-        s.send(message.encode('utf-8'))
-        is_moving = True
-
-    # Only move if robot is already facing target
-    if not is_moving:
-        if 5 < distance < 15:
-            message = "FAST"
-            is_moving = True
-            s.send(message.encode('utf-8'))
-        elif distance > target_distance:
-            message = "FORWARD"
-            is_moving = True
-            s.send(message.encode('utf-8'))
-        else:
-            message = "STOP"
-            is_moving = False
-            s.send(message.encode('utf-8'))
-
-    return is_moving'''
-
-
+# This funktion processes the detected objects from the YOLO model, and returns detections as objects
 def handle_detections(detections, robot_center, arrow_center, back_center, bounds,
                       cross_center, balls):
     for i in range(len(detections)):
@@ -132,23 +83,24 @@ def handle_detections(detections, robot_center, arrow_center, back_center, bound
         center_x = (xyxy[0] + xyxy[2]) / 2
         center_y = (xyxy[1] + xyxy[3]) / 2
         class_id = detections.class_id[i]
-        if class_id == 7:
+        if class_id == 7: #robot center
             robot_center = (center_x, center_y)
-        elif class_id == 6:
+        elif class_id == 6: #arrow center
             arrow_center = (center_x, center_y)
-        elif np.isin(0, class_id):
+        elif np.isin(0, class_id): #back center
             back_center = (center_x, center_y)
-        elif class_id in [1, 2]:
+        elif class_id in [1, 2]: #balls
             balls.append((center_x, center_y))
-        elif class_id == 3:
+        elif class_id == 3: #bounds
             x_center = (xyxy[0] + xyxy[2]) / 2  # calculate x center of the bound
             y_center = (xyxy[1] + xyxy[3]) / 2  # calculate y center of the bound
             bounds.append((x_center, y_center))  # save the x and y coordinates of the bounds
-        elif class_id == 5:
+        elif class_id == 5: #cross
             cross_center = (center_x, center_y)
     return robot_center, arrow_center, back_center, cross_center
 
 
+# This funktion finds the closest ball, and exclude some that are to close to bounds, or cross.
 def calc_closest_ball(balls, north, west, south, east, robot_center, closest_ball, closest_ball_distance, cross_center):
     for ball in balls:
         distance = math.sqrt((ball[0] - robot_center[0]) ** 2 + (ball[1] - robot_center[1]) ** 2)
@@ -158,7 +110,7 @@ def calc_closest_ball(balls, north, west, south, east, robot_center, closest_bal
             closest_ball_distance = distance
     return closest_ball
 
-
+# This funktion is used if we can't find bounds, so we just move to the closest ball with no restrictions
 def calc_closest_ball_without_directions(balls, closest_ball, closest_ball_distance, robot_center):
     for ball in balls:
         distance = math.sqrt((ball[0] - robot_center[0]) ** 2 + (ball[1] - robot_center[1]) ** 2)
@@ -167,11 +119,11 @@ def calc_closest_ball_without_directions(balls, closest_ball, closest_ball_dista
             closest_ball_distance = distance
     return closest_ball
 
-
+# Calculates the Euclidean distance between two objects
 def calcDist(target, frontArrow):
     return math.sqrt((frontArrow[0] - target[0]) ** 2 + (frontArrow[1] - target[1]) ** 2)
 
-
+# Finds the goal to the right of the screen
 def find_goal(goal, bounds, checkpoint):
     for center in bounds:
         if 200 < center[1] < 400 and center[0] > 200 and goal is None:
@@ -179,7 +131,7 @@ def find_goal(goal, bounds, checkpoint):
             checkpoint = (goal[0] - 100, goal[1])
     return goal, checkpoint
 
-
+# Calculates the robots angle that it is currently facing
 def find_robot_angle(back_center, arrow_center):
     if back_center and arrow_center:
         diff_x = arrow_center[0] - back_center[0]
@@ -190,7 +142,7 @@ def find_robot_angle(back_center, arrow_center):
         return angle_deg
     return None
 
-
+# Navigates the robot based on angle and distance to target
 def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
     onTarget, angleDif = checkAngle(robot_angle, target_coord, back_coord)
 
@@ -204,7 +156,7 @@ def navigate_robot(robot_angle, back_coord, target_coord, distance, target_dista
         is_moving = False
     return is_moving
 
-
+# Calculates the second-closest offset from the cross to navigate around it
 def get_second_closest_offset(cross_center, target, offset):
     offsets = [
         (cross_center[0], cross_center[1] + offset),  # North
@@ -216,7 +168,7 @@ def get_second_closest_offset(cross_center, target, offset):
     second_closest_offset_index = sorted(range(len(distances)), key=lambda i: distances[i])[1]
     return offsets[second_closest_offset_index]
 
-
+# Finds which bound is where, so we know which direction to offset
 def get_north_east_south_west(bounds, east, west, north, south):
     for center in bounds:
         if 200 < center[1] < 400 and center[0] > 200:
@@ -230,7 +182,7 @@ def get_north_east_south_west(bounds, east, west, north, south):
     return east, west, north, south
 
 
-#Main method that runs the core logic
+# Main method that runs the core logic
 def main():
     video = cv2.VideoCapture(INPUT_SOURCE, cv2.CAP_DSHOW)
     model = YOLO("res/best.pt")
@@ -245,22 +197,26 @@ def main():
     offset = None
     goToOffset = False
     north, east, south, west = None, None, None, None
+
+    #Main loop
     while video.isOpened():
         closest_ball = None
         closest_ball_distance = float('inf')
         bounds = []
         balls = []
+        # Read frame from video
         ret, frame = video.read()
         if ret:
+            # Run the YOLO model ont the frame
             result = model(frame, conf=CONF, iou=IOU)[0]
             detections = sv.Detections.from_yolov8(result)
-            robot_center, arrow_center, back_center, cross_center = handle_detections(detections,
-                                                                                      robot_center,
-                                                                                      arrow_center,
-                                                                                      back_center,
-                                                                                      bounds,
-                                                                                      cross_center, balls)
+
+            # Saves the objects that was detected by the YOLO model
+            robot_center, arrow_center, back_center, cross_center = handle_detections(detections, robot_center, arrow_center,
+                                                                                      back_center, bounds, cross_center, balls)
             east, west, north, south = get_north_east_south_west(bounds, east, west, north, south)
+
+            # Finds the closest ball
             if north is not None and west is not None and east is not None and south is not None and robot_center is not None:
                 closest_ball = calc_closest_ball(balls, north, west, south, east, robot_center, closest_ball,
                                                  closest_ball_distance, cross_center)
