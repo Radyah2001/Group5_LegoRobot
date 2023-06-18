@@ -230,6 +230,7 @@ def get_north_east_south_west(bounds, east, west, north, south):
     return east, west, north, south
 
 
+#Main method that runs the core logic
 def main():
     video = cv2.VideoCapture(INPUT_SOURCE, cv2.CAP_DSHOW)
     model = YOLO("res/best.pt")
@@ -307,15 +308,21 @@ def main():
                     s.send(message.encode('utf-8'))
                 is_moving = navigate_robot(angle_deg, back_center, closest_ball_saved,
                                            calcDist(closest_ball_saved, arrow_center), 5, is_moving)
-                # elif calcBallDist(closest_ball_saved, arrow_center) <= 20:
-                #    message = "FORWARD"
-                #    s.send(message.encode('utf-8'))
                 if calcDist(closest_ball_saved, arrow_center) <= 10:
                     closest_ball_saved = None
                     message = "STOP"
                     s.send(message.encode('utf-8'))
             elif closest_ball is None and goal is not None:
                 if not checkpoint_reached:
+                    if calcDist(cross_center, arrow_center) <= 75 and calcDist(checkpoint, arrow_center) > calcDist(checkpoint, cross_center):  # When front of robot is close to cross_center
+                        offset = get_second_closest_offset(cross_center, checkpoint, 135)
+                        goToOffset = True
+                    if offset is not None and goToOffset:
+                        is_moving = navigate_robot(angle_deg, back_center, offset,
+                                                   calcDist(offset, arrow_center), 10, is_moving)
+                        if calcDist(offset, arrow_center) < 10:
+                            goToOffset = False
+                        continue
                     is_moving = navigate_robot(angle_deg, back_center, checkpoint, calcDist(checkpoint, arrow_center),
                                                15, is_moving)
                     if calcDist(checkpoint, arrow_center) <= 15:
