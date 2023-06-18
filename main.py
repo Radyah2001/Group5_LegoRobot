@@ -153,13 +153,22 @@ def calc_closest_ball(balls, north, west, south, east, robot_center, closest_bal
     for ball in balls:
         distance = math.sqrt((ball[0] - robot_center[0]) ** 2 + (ball[1] - robot_center[1]) ** 2)
         if distance < closest_ball_distance and west[0] + 10 < ball[0] < east[0] - 10 and north[1] - 10 > ball[1] > \
-                south[0] - 10 and north is not None and west is not None and east is not None and south is not None:
+                south[0] - 10:
             closest_ball = (ball[0], ball[1])
             closest_ball_distance = distance
         elif distance < closest_ball_distance:
             closest_ball = (ball[0], ball[1])
             closest_ball_distance = distance
-        return closest_ball
+    return closest_ball
+
+
+def calc_closest_ball_without_directions(balls, closest_ball, closest_ball_distance, robot_center):
+    for ball in balls:
+        distance = math.sqrt((ball[0] - robot_center[0]) ** 2 + (ball[1] - robot_center[1]) ** 2)
+        if distance < closest_ball_distance:
+            closest_ball = (ball[0], ball[1])
+            closest_ball_distance = distance
+    return closest_ball
 
 
 def calcDist(target, frontArrow):
@@ -253,8 +262,12 @@ def main():
                                                                                       back_center,
                                                                                       bounds,
                                                                                       cross_center, balls)
-            closest_ball = calc_closest_ball(balls, north, west, south, east, robot_center, closest_ball,
-                                             closest_ball_distance)
+            if north is not None and west is not None and east is not None and south is not None and robot_center is not None:
+                closest_ball = calc_closest_ball(balls, north, west, south, east, robot_center, closest_ball,
+                                                 closest_ball_distance)
+            elif robot_center is not None:
+                calc_closest_ball_without_directions(balls, closest_ball, closest_ball_distance, robot_center)
+
             goal, checkpoint = find_goal(goal, bounds, checkpoint)
             angle_deg = find_robot_angle(back_center, arrow_center)
             east, west, north, south = get_north_east_south_west(bounds, east, west, north, south)
