@@ -205,6 +205,7 @@ def main():
     offset3, offset2, offset1 = None, None, None
     goToOffset = False
     north, east, south, west = None, None, None, None
+    ball_count = 0
 
     #Main loop
     while video.isOpened():
@@ -294,11 +295,12 @@ def main():
                     closest_ball_saved = None
                     message = "STOP"
                     s.send(message.encode('utf-8'))
+                    ball_count += 1
                 continue
             if closest_ball is not None and back_center is not None and angle_deg is not None:
                 if closest_ball_saved is None:
                     closest_ball_saved = closest_ball
-            elif closest_ball_saved is None and goal is not None:
+            elif ball_count >= 6 and goal is not None:
                 if not checkpoint_reached:
                     if calcDist(cross_center, arrow_center) <= 75 and calcDist(checkpoint, arrow_center) > calcDist(checkpoint, cross_center):  # When front of robot is close to cross_center
                         offset3, offset2, offset1 = get_multiple_closest_offsets(cross_center, checkpoint, 100)
