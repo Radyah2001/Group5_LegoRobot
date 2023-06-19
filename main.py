@@ -253,10 +253,13 @@ def main():
                 cv2.circle(frame, (int(checkpoint[0]), int(checkpoint[1])), radius=15, color=(0, 250, 250),
                            thickness=-1)
 
+            annotated_frame = result.plot()
+            cv2.imshow("yolov8", annotated_frame)
+
             # Break the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
-            if closest_ball_saved is not None:
+            if closest_ball_saved is not None and ball_count < 6:
                 if calcDist(cross_center, arrow_center) <= 75 and calcDist(closest_ball_saved, arrow_center) > calcDist(
                         closest_ball_saved, cross_center):  # When front of robot is close to cross_center
                     offset3, offset2, offset1 = get_multiple_closest_offsets(cross_center, closest_ball_saved, 100)
@@ -297,10 +300,10 @@ def main():
                     s.send(message.encode('utf-8'))
                     ball_count += 1
                 continue
-            if closest_ball is not None and back_center is not None and angle_deg is not None:
+            if closest_ball is not None and back_center is not None and angle_deg is not None and ball_count < 6:
                 if closest_ball_saved is None:
                     closest_ball_saved = closest_ball
-            elif ball_count >= 6 and goal is not None:
+            elif closest_ball_saved is None and goal is not None:
                 if not checkpoint_reached:
                     if calcDist(cross_center, arrow_center) <= 75 and calcDist(checkpoint, arrow_center) > calcDist(checkpoint, cross_center):  # When front of robot is close to cross_center
                         offset3, offset2, offset1 = get_multiple_closest_offsets(cross_center, checkpoint, 100)
@@ -338,13 +341,11 @@ def main():
                         message = "EJECT"
                         s.send(message.encode('utf-8'))
                         closest_ball_saved = None
+                        ball_count = 0
                         print("distance to goal is:", calcDist(goal, arrow_center))
             else:
                 message = "STOP"
                 s.send(message.encode('utf-8'))
-
-            annotated_frame = result.plot()
-            cv2.imshow("yolov8", annotated_frame)
     video.release()
     cv2.destroyAllWindows()
     s.close()
