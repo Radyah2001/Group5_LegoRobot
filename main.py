@@ -36,7 +36,7 @@ def turn_robot(angle_difference):
 
 # Funktion to move the robot based on the distance to target
 def move_robot(distance, target_distance, is_moving):
-    if 5 < distance < 20:
+    if 5 < distance < 25:
         message = "FAST"
         moving = True
         s.send(message.encode('utf-8'))
@@ -144,16 +144,16 @@ def find_robot_angle(back_center, arrow_center):
 
 # Navigates the robot based on angle and distance to target
 def navigate_robot(robot_angle, back_coord, target_coord, distance, target_distance, is_moving):
-    onTarget, angleDif = checkAngle(robot_angle, target_coord, back_coord)
-
-    if onTarget:
-        if is_moving == False:
-            message = "STOP"
-            s.send(message.encode('utf-8'))
-        is_moving = move_robot(distance, target_distance, is_moving)
-    else:
-        is_turning = turn_robot(angleDif)
-        is_moving = False
+    if back_coord is not None:
+        onTarget, angleDif = checkAngle(robot_angle, target_coord, back_coord)
+        if onTarget:
+            if is_moving == False:
+                message = "STOP"
+                s.send(message.encode('utf-8'))
+            is_moving = move_robot(distance, target_distance, is_moving)
+        else:
+            is_turning = turn_robot(angleDif)
+            is_moving = False
     return is_moving
 
 # Calculates the second-closest offset from the cross to navigate around it
@@ -226,14 +226,22 @@ def main():
             goal, checkpoint = find_goal(goal, bounds, checkpoint)
             angle_deg = find_robot_angle(back_center, arrow_center)
             if east is not None and west is not None and north is not None and south is not None:
+                if west[0] + 20 > arrow_center[0] or arrow_center[0] > east[0] - 20 or south[1] - 20 < arrow_center[1]\
+                        or arrow_center[1] < north[1] + 20:
+                    message = "BACK1"
+                    s.send(message.encode('utf-8'))
+                if west[0] + 20 > back_center[0] or back_center[0] > east[0] - 20 or south[1] - 20 < back_center[1] \
+                        or back_center[1] < north[1] + 20:
+                    message = "FAST"
+                    s.send(message.encode('utf-8'))
                 cv2.circle(frame, (int(east[0]), int(east[1])), radius=10, color=(0, 0, 255), thickness=-1)
                 cv2.circle(frame, (int(west[0]), int(west[1])), radius=10, color=(0, 0, 255), thickness=-1)
                 cv2.circle(frame, (int(north[0]), int(north[1])), radius=10, color=(0, 0, 255), thickness=-1)
                 cv2.circle(frame, (int(south[0]), int(south[1])), radius=10, color=(0, 0, 255), thickness=-1)
-            if cross_center is not None and closest_ball is not None:
+            '''if cross_center is not None and closest_ball is not None:
                 offset = get_second_closest_offset(cross_center, closest_ball, 135)
                 cv2.circle(frame, (int(offset[0]), int(offset[1])), radius=10, color=(0, 0, 255),
-                           thickness=-1)
+                           thickness=-1)'''
             if goal is not None:
                 cv2.circle(frame, (int(goal[0]), int(goal[1])), radius=10, color=(0, 0, 255),
                            thickness=-1)
@@ -252,6 +260,8 @@ def main():
                         closest_ball_saved, cross_center):  # When front of robot is close to cross_center
                     offset = get_second_closest_offset(cross_center, closest_ball_saved, 135)
                     goToOffset = True
+                    message = "BACK1"
+                    s.send(message.encode('utf-8'))
                 if offset is not None and goToOffset:
                     is_moving = navigate_robot(angle_deg, back_center, offset,
                                                calcDist(offset, arrow_center), 10, is_moving)
@@ -260,10 +270,12 @@ def main():
                     continue
                 if calcDist(closest_ball_saved, arrow_center) > calcDist(closest_ball_saved, robot_center) and calcDist(
                         closest_ball_saved, robot_center) <= 50:
-                    message = "BACK"
+                    message = "BACK1"
                     s.send(message.encode('utf-8'))
                 is_moving = navigate_robot(angle_deg, back_center, closest_ball_saved,
                                            calcDist(closest_ball_saved, arrow_center), 5, is_moving)
+                cv2.circle(frame, (int(closest_ball_saved[0]), int(closest_ball_saved[1])), radius=10, color=(0, 0, 255),
+                           thickness=-1)
                 if calcDist(closest_ball_saved, arrow_center) <= 10:
                     closest_ball_saved = None
                     message = "STOP"
