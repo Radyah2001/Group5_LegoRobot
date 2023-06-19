@@ -157,16 +157,24 @@ def navigate_robot(robot_angle, back_coord, target_coord, distance, target_dista
     return is_moving
 
 # Calculates the second-closest offset from the cross to navigate around it
-def get_second_closest_offset(cross_center, target, offset):
+def get_multiple_closest_offsets(cross_center, target, offset):
     offsets = [
         (cross_center[0], cross_center[1] + offset),  # North
         (cross_center[0], cross_center[1] - offset),  # South
         (cross_center[0] + offset, cross_center[1]),  # East
-        (cross_center[0] - offset, cross_center[1])  # West
+        (cross_center[0] - offset, cross_center[1]),  # West
+        (cross_center[0] + offset, cross_center[1] + offset),  # North-East
+        (cross_center[0] + offset, cross_center[1] - offset),  # South-East
+        (cross_center[0] - offset, cross_center[1] + offset),  # North-West
+        (cross_center[0] - offset, cross_center[1] - offset)  # South-West
     ]
     distances = [calcDist(target, offset) for offset in offsets]
-    second_closest_offset_index = sorted(range(len(distances)), key=lambda i: distances[i])[1]
-    return offsets[second_closest_offset_index]
+    sorted_indices = sorted(range(len(distances)), key=lambda i: distances[i])
+    second_closest_offset = offsets[sorted_indices[1]]
+    fourth_closest_offset = offsets[sorted_indices[3]]
+    sixth_closest_offset = offsets[sorted_indices[5]]
+
+    return second_closest_offset, fourth_closest_offset, sixth_closest_offset
 
 # Finds which bound is where, so we know which direction to offset
 def get_north_east_south_west(bounds, east, west, north, south):
@@ -194,7 +202,7 @@ def main():
     north, east, south, west = None, None, None, None
     message = "SPIN"
     s.send(message.encode('utf-8'))
-    offset = None
+    offset3, offset2, offset1 = None, None, None
     goToOffset = False
     north, east, south, west = None, None, None, None
 
@@ -256,16 +264,32 @@ def main():
             if closest_ball_saved is not None:
                 if calcDist(cross_center, arrow_center) <= 75 and calcDist(closest_ball_saved, arrow_center) > calcDist(
                         closest_ball_saved, cross_center):  # When front of robot is close to cross_center
-                    offset = get_second_closest_offset(cross_center, closest_ball_saved, 135)
-                    goToOffset = True
+                    offset3, offset2, offset1 = get_multiple_closest_offsets(cross_center, closest_ball_saved, 135)
+                    goToOffset1 = True
                     message = "BACK1"
                     s.send(message.encode('utf-8'))
-                if offset is not None and goToOffset:
-                    is_moving = navigate_robot(angle_deg, back_center, offset,
-                                               calcDist(offset, arrow_center), 10, is_moving)
-                    if calcDist(offset, arrow_center) < 10:
-                        goToOffset = False
+                if offset1 is not None and goToOffset1:
+                    is_moving = navigate_robot(angle_deg, back_center, offset1,
+                                               calcDist(offset1, arrow_center), 10, is_moving)
+                    if calcDist(offset1, arrow_center) < 10:
+                        goToOffset1 = False
+                        goToOffset2 = True
                     continue
+                if offset2 is not None and goToOffset2:
+                    is_moving = navigate_robot(angle_deg, back_center, offset2,
+                                               calcDist(offset2, arrow_center), 10, is_moving)
+                    if calcDist(offset2, arrow_center) < 10:
+                        goToOffset2 = False
+                        goToOffset3 = True
+                    continue
+                if offset3 is not None and goToOffset3:
+                    is_moving = navigate_robot(angle_deg, back_center, offset3,
+                                               calcDist(offset3, arrow_center), 10, is_moving)
+                    if calcDist(offset3, arrow_center) < 10:
+                        goToOffset3 = False
+                    continue
+
+
                 if calcDist(closest_ball_saved, arrow_center) > calcDist(closest_ball_saved, robot_center) and calcDist(
                         closest_ball_saved, robot_center) <= 50:
                     message = "BACK1"
@@ -285,13 +309,29 @@ def main():
             elif closest_ball_saved is None and goal is not None:
                 if not checkpoint_reached:
                     if calcDist(cross_center, arrow_center) <= 75 and calcDist(checkpoint, arrow_center) > calcDist(checkpoint, cross_center):  # When front of robot is close to cross_center
-                        offset = get_second_closest_offset(cross_center, checkpoint, 135)
-                        goToOffset = True
-                    if offset is not None and goToOffset:
-                        is_moving = navigate_robot(angle_deg, back_center, offset,
-                                                   calcDist(offset, arrow_center), 10, is_moving)
-                        if calcDist(offset, arrow_center) < 10:
-                            goToOffset = False
+                        offset3, offset2, offset1 = get_multiple_closest_offsets(cross_center, checkpoint, 135)
+                        goToOffset1 = True
+                        message = "BACK1"
+                        s.send(message.encode('utf-8'))
+                    if offset1 is not None and goToOffset1:
+                        is_moving = navigate_robot(angle_deg, back_center, offset1,
+                                                   calcDist(offset1, arrow_center), 10, is_moving)
+                        if calcDist(offset1, arrow_center) < 10:
+                            goToOffset1 = False
+                            goToOffset2 = True
+                        continue
+                    if offset2 is not None and goToOffset2:
+                        is_moving = navigate_robot(angle_deg, back_center, offset2,
+                                                   calcDist(offset2, arrow_center), 10, is_moving)
+                        if calcDist(offset2, arrow_center) < 10:
+                            goToOffset2 = False
+                            goToOffset3 = True
+                        continue
+                    if offset3 is not None and goToOffset3:
+                        is_moving = navigate_robot(angle_deg, back_center, offset3,
+                                                   calcDist(offset3, arrow_center), 10, is_moving)
+                        if calcDist(offset3, arrow_center) < 10:
+                            goToOffset3 = False
                         continue
                     is_moving = navigate_robot(angle_deg, back_center, checkpoint, calcDist(checkpoint, arrow_center),
                                                15, is_moving)
