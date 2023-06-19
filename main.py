@@ -83,19 +83,19 @@ def handle_detections(detections, robot_center, arrow_center, back_center, bound
         center_x = (xyxy[0] + xyxy[2]) / 2
         center_y = (xyxy[1] + xyxy[3]) / 2
         class_id = detections.class_id[i]
-        if class_id == 7: #robot center
+        if class_id == 7:  # robot center
             robot_center = (center_x, center_y)
-        elif class_id == 6: #arrow center
+        elif class_id == 6:  # arrow center
             arrow_center = (center_x, center_y)
-        elif np.isin(0, class_id): #back center
+        elif np.isin(0, class_id):  # back center
             back_center = (center_x, center_y)
-        elif class_id in [1, 2]: #balls
+        elif class_id in [1, 2]:  # balls
             balls.append((center_x, center_y))
-        elif class_id == 3: #bounds
+        elif class_id == 3:  # bounds
             x_center = (xyxy[0] + xyxy[2]) / 2  # calculate x center of the bound
             y_center = (xyxy[1] + xyxy[3]) / 2  # calculate y center of the bound
             bounds.append((x_center, y_center))  # save the x and y coordinates of the bounds
-        elif class_id == 5: #cross
+        elif class_id == 5:  # cross
             cross_center = (center_x, center_y)
     return robot_center, arrow_center, back_center, cross_center
 
@@ -156,6 +156,7 @@ def navigate_robot(robot_angle, back_coord, target_coord, distance, target_dista
             is_moving = False
     return is_moving
 
+
 # Calculates the second-closest offset from the cross to navigate around it
 def get_second_closest_offset(cross_center, target, offset):
     offsets = [
@@ -167,6 +168,7 @@ def get_second_closest_offset(cross_center, target, offset):
     distances = [calcDist(target, offset) for offset in offsets]
     second_closest_offset_index = sorted(range(len(distances)), key=lambda i: distances[i])[1]
     return offsets[second_closest_offset_index]
+
 
 # Finds which bound is where, so we know which direction to offset
 def get_north_east_south_west(bounds, east, west, north, south):
@@ -198,7 +200,7 @@ def main():
     goToOffset = False
     north, east, south, west = None, None, None, None
 
-    #Main loop
+    # Main loop
     while video.isOpened():
         closest_ball = None
         closest_ball_distance = float('inf')
@@ -212,8 +214,10 @@ def main():
             detections = sv.Detections.from_yolov8(result)
 
             # Saves the objects that was detected by the YOLO model
-            robot_center, arrow_center, back_center, cross_center = handle_detections(detections, robot_center, arrow_center,
-                                                                                      back_center, bounds, cross_center, balls)
+            robot_center, arrow_center, back_center, cross_center = handle_detections(detections, robot_center,
+                                                                                      arrow_center,
+                                                                                      back_center, bounds, cross_center,
+                                                                                      balls)
             east, west, north, south = get_north_east_south_west(bounds, east, west, north, south)
 
             # Finds the closest ball
@@ -226,7 +230,7 @@ def main():
             goal, checkpoint = find_goal(goal, bounds, checkpoint)
             angle_deg = find_robot_angle(back_center, arrow_center)
             if east is not None and west is not None and north is not None and south is not None:
-                if west[0] + 20 > arrow_center[0] or arrow_center[0] > east[0] - 20 or south[1] - 20 < arrow_center[1]\
+                if west[0] + 20 > arrow_center[0] or arrow_center[0] > east[0] - 20 or south[1] - 20 < arrow_center[1] \
                         or arrow_center[1] < north[1] + 20:
                     message = "BACK1"
                     s.send(message.encode('utf-8'))
@@ -238,30 +242,29 @@ def main():
                 cv2.circle(frame, (int(west[0]), int(west[1])), radius=10, color=(0, 0, 255), thickness=-1)
                 cv2.circle(frame, (int(north[0]), int(north[1])), radius=10, color=(0, 0, 255), thickness=-1)
                 cv2.circle(frame, (int(south[0]), int(south[1])), radius=10, color=(0, 0, 255), thickness=-1)
-            '''if cross_center is not None and closest_ball is not None:
+            if cross_center is not None and closest_ball is not None:
                 offset = get_second_closest_offset(cross_center, closest_ball, 135)
                 cv2.circle(frame, (int(offset[0]), int(offset[1])), radius=10, color=(0, 0, 255),
-                           thickness=-1)'''
+                           thickness=-1)
             if goal is not None:
                 cv2.circle(frame, (int(goal[0]), int(goal[1])), radius=10, color=(0, 0, 255),
                            thickness=-1)
                 cv2.circle(frame, (int(checkpoint[0]), int(checkpoint[1])), radius=15, color=(0, 250, 250),
                            thickness=-1)
-            annotated_frame = result.plot()
-            cv2.imshow("yolov8", annotated_frame)
 
             # Break the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
-            if closest_ball is not None and back_center is not None and angle_deg is not None:
-                if closest_ball_saved is None:
-                    closest_ball_saved = closest_ball
+            if closest_ball_saved is not None:
                 if calcDist(cross_center, arrow_center) <= 75 and calcDist(closest_ball_saved, arrow_center) > calcDist(
                         closest_ball_saved, cross_center):  # When front of robot is close to cross_center
                     offset = get_second_closest_offset(cross_center, closest_ball_saved, 135)
                     goToOffset = True
                     message = "BACK1"
                     s.send(message.encode('utf-8'))
+                cv2.circle(frame, (int(closest_ball_saved[0]), int(closest_ball_saved[1])), radius=10,
+                           color=(0, 0, 255),
+                           thickness=-1)
                 if offset is not None and goToOffset:
                     is_moving = navigate_robot(angle_deg, back_center, offset,
                                                calcDist(offset, arrow_center), 10, is_moving)
@@ -274,15 +277,21 @@ def main():
                     s.send(message.encode('utf-8'))
                 is_moving = navigate_robot(angle_deg, back_center, closest_ball_saved,
                                            calcDist(closest_ball_saved, arrow_center), 5, is_moving)
-                cv2.circle(frame, (int(closest_ball_saved[0]), int(closest_ball_saved[1])), radius=10, color=(0, 0, 255),
+                cv2.circle(frame, (int(closest_ball_saved[0]), int(closest_ball_saved[1])), radius=10,
+                           color=(0, 0, 255),
                            thickness=-1)
                 if calcDist(closest_ball_saved, arrow_center) <= 10:
                     closest_ball_saved = None
                     message = "STOP"
                     s.send(message.encode('utf-8'))
-            elif closest_ball is None and goal is not None:
+                continue
+            if closest_ball is not None and back_center is not None and angle_deg is not None:
+                if closest_ball_saved is None:
+                    closest_ball_saved = closest_ball
+            elif closest_ball_saved is None and goal is not None:
                 if not checkpoint_reached:
-                    if calcDist(cross_center, arrow_center) <= 75 and calcDist(checkpoint, arrow_center) > calcDist(checkpoint, cross_center):  # When front of robot is close to cross_center
+                    if calcDist(cross_center, arrow_center) <= 75 and calcDist(checkpoint, arrow_center) > calcDist(
+                            checkpoint, cross_center):  # When front of robot is close to cross_center
                         offset = get_second_closest_offset(cross_center, checkpoint, 135)
                         goToOffset = True
                     if offset is not None and goToOffset:
@@ -306,6 +315,9 @@ def main():
             else:
                 message = "STOP"
                 s.send(message.encode('utf-8'))
+
+            annotated_frame = result.plot()
+            cv2.imshow("yolov8", annotated_frame)
     video.release()
     cv2.destroyAllWindows()
     s.close()

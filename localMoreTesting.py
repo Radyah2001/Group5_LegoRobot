@@ -255,8 +255,6 @@ def main():
                            thickness=-1)
                 cv2.circle(frame, (int(checkpoint[0]), int(checkpoint[1])), radius=15, color=(0, 250, 250),
                            thickness=-1)
-            annotated_frame = result.plot()
-            cv2.imshow("yolov8", annotated_frame)
 
             # Break the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -264,7 +262,7 @@ def main():
             if closest_ball_saved is not None:
                 if calcDist(cross_center, arrow_center) <= 75 and calcDist(closest_ball_saved, arrow_center) > calcDist(
                         closest_ball_saved, cross_center):  # When front of robot is close to cross_center
-                    offset3, offset2, offset1 = get_multiple_closest_offsets(cross_center, closest_ball_saved, 135)
+                    offset3, offset2, offset1 = get_multiple_closest_offsets(cross_center, closest_ball_saved, 100)
                     goToOffset1 = True
                     message = "BACK1"
                     s.send(message.encode('utf-8'))
@@ -309,7 +307,7 @@ def main():
             elif closest_ball_saved is None and goal is not None:
                 if not checkpoint_reached:
                     if calcDist(cross_center, arrow_center) <= 75 and calcDist(checkpoint, arrow_center) > calcDist(checkpoint, cross_center):  # When front of robot is close to cross_center
-                        offset3, offset2, offset1 = get_multiple_closest_offsets(cross_center, checkpoint, 135)
+                        offset3, offset2, offset1 = get_multiple_closest_offsets(cross_center, checkpoint, 100)
                         goToOffset1 = True
                         message = "BACK1"
                         s.send(message.encode('utf-8'))
@@ -348,6 +346,9 @@ def main():
             else:
                 message = "STOP"
                 s.send(message.encode('utf-8'))
+
+            annotated_frame = result.plot()
+            cv2.imshow("yolov8", annotated_frame)
     video.release()
     cv2.destroyAllWindows()
     s.close()
