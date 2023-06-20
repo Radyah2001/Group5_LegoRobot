@@ -23,6 +23,7 @@ import select
 
 # This is for the 2 big motors to be able to move the robot
 tank_pair = MoveTank(OUTPUT_B, OUTPUT_A)
+# This is for the medium motor that control the spinner that collect/deposits the balls
 scoop = MediumMotor(OUTPUT_D)
 
 
@@ -70,6 +71,7 @@ def move(tester):
     elif (input[0] == "STOP"):
         tank_pair.stop()
     elif (input[0] == "FIX"):
+        # rotates the spinner a bit in both directions to dislodge any stuck balls, before resuming normal rotation
         scoop.on_for_degrees(SpeedPercent(-40), 40)
         scoop.on_for_degrees(SpeedPercent(70), 40)
         scoop.on(SpeedPercent(25), block=False)
@@ -92,6 +94,8 @@ def server():
         if scoop.is_stalled:
             move("FIX")
         data = client_socket.recv(1024).decode('utf-8')
+        if scoop.is_stalled:
+            move("FIX")
         if not data:
             break
         move(data)
