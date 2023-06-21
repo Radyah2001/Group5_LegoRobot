@@ -42,13 +42,15 @@ def move(tester):
         input.append('100')
 
     if (input[0] == "FORWARD"):
-        tank_pair.on(SpeedPercent(-50), SpeedPercent(-50))
+        tank_pair.on(SpeedPercent(-35), SpeedPercent(-35))
     elif (input[0] == "FAST"):
         tank_pair.on_for_degrees(SpeedPercent(-80), SpeedPercent(-80), 270, block=True)
     elif (input[0] == "BACK"):
-        tank_pair.on(SpeedPercent(50), SpeedPercent(50))
+        tank_pair.on(SpeedPercent(40), SpeedPercent(40))
     elif (input[0] == "BACK1"):
-        tank_pair.on_for_degrees(SpeedPercent(80), SpeedPercent(80), 450, block=True)
+        tank_pair.on_for_degrees(SpeedPercent(65), SpeedPercent(65), 200, block=True)
+    elif (input[0] == "BACK2"):
+        tank_pair.on_for_degrees(SpeedPercent(55), SpeedPercent(55), 450, block=True)
     elif (input[0] == "RIGHT"):
         tank_pair.on(SpeedPercent(-8), SpeedPercent(8))
     elif (input[0] == "LEFT"):
@@ -58,7 +60,7 @@ def move(tester):
         # scoop.on_for_degrees(SpeedPercent(25),200,block=False)
     elif (input[0] == "EJECT"):
         tank_pair.stop()
-        scoop.on_for_seconds(SpeedPercent(-30), 5)
+        scoop.on_for_seconds(SpeedPercent(-15), 5)
         # scoop.on_for_degrees(SpeedPercent(-30),800)
         tank_pair.on_for_rotations(SpeedPercent(80), SpeedPercent(80), 1)
         scoop.on(SpeedPercent(25), block=False)
