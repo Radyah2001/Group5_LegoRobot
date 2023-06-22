@@ -232,6 +232,8 @@ def main():
 
             goal, checkpoint = find_goal(goal, bounds, checkpoint)
             angle_deg = find_robot_angle(back_center, arrow_center)
+
+            # Avoid bounds
             if east is not None and west is not None and north is not None and south is not None and not checkpoint_reached:
                 if west[0] + 20 > arrow_center[0] or arrow_center[0] > east[0] - 15 or south[1] - 20 < arrow_center[1] \
                         or arrow_center[1] < north[1] + 20:
@@ -257,6 +259,7 @@ def main():
             # Break the loop if 'q' is pressed
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
+            # Try to catch 6 balls, then return to goal
             if closest_ball_saved is not None and ball_count < 6:
                 if calcDist(cross_center, arrow_center) <= 75 and calcDist(closest_ball_saved, arrow_center) > calcDist(
                         closest_ball_saved, cross_center):  # When front of robot is close to cross_center
@@ -270,6 +273,8 @@ def main():
                     if calcDist(offset, arrow_center) < 10:
                         goToOffset = False
                     continue
+
+                # back up if target ball is behind front
                 if calcDist(closest_ball_saved, arrow_center) > calcDist(closest_ball_saved, robot_center) and calcDist(
                         closest_ball_saved, robot_center) <= 50:
                     message = "BACK2"
@@ -287,7 +292,10 @@ def main():
             if closest_ball is not None and back_center is not None and angle_deg is not None and ball_count < 6:
                 if closest_ball_saved is None:
                     closest_ball_saved = closest_ball
+
+            # Going to goal
             elif closest_ball_saved is None and goal is not None:
+                # Checkpoint first
                 if not checkpoint_reached:
                     if calcDist(cross_center, arrow_center) <= 75 and calcDist(checkpoint, arrow_center) > calcDist(checkpoint, cross_center):  # When front of robot is close to cross_center
                         offset = get_multiple_closest_offsets(cross_center, checkpoint, 100, arrow_center)
@@ -312,6 +320,7 @@ def main():
                 else:
                     is_moving = navigate_robot(angle_deg, back_center, goal, calcDist(goal, arrow_center), 40,
                                                is_moving)
+                    # Ejecting when close enough to goal
                     if calcDist(goal, arrow_center) <= 40:
                         message = "EJECT"
                         s.send(message.encode('utf-8'))
