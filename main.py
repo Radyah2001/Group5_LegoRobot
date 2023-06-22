@@ -34,7 +34,7 @@ def turn_robot(angle_difference):
     s.send(message.encode('utf-8'))
     return turning
 
-# Funktion to move the robot based on the distance to target
+# function to move the robot based on the distance to target
 def move_robot(distance, target_distance, is_moving):
     if 5 < distance < 25:
         message = "FAST"
@@ -75,7 +75,7 @@ def checkAngle(robot_angle, target_coord, back_coord):
         return False, angle_difference
 
 
-# This funktion processes the detected objects from the YOLO model, and returns detections as objects
+# This function processes the detected objects from the YOLO model, and returns detections as objects
 def handle_detections(detections, robot_center, arrow_center, back_center, bounds,
                       cross_center, balls):
     for i in range(len(detections)):
@@ -100,7 +100,7 @@ def handle_detections(detections, robot_center, arrow_center, back_center, bound
     return robot_center, arrow_center, back_center, cross_center
 
 
-# This funktion finds the closest ball, and exclude some that are to close to bounds, or cross.
+# This function finds the closest ball, and exclude some that are to close to bounds, or cross.
 def calc_closest_ball(balls, north, west, south, east, robot_center, closest_ball, closest_ball_distance, cross_center):
     for ball in balls:
         distance = math.sqrt((ball[0] - robot_center[0]) ** 2 + (ball[1] - robot_center[1]) ** 2)
@@ -110,7 +110,7 @@ def calc_closest_ball(balls, north, west, south, east, robot_center, closest_bal
             closest_ball_distance = distance
     return closest_ball
 
-# This funktion is used if we can't find bounds, so we just move to the closest ball with no restrictions
+# This function is used if we can't find bounds, so we just move to the closest ball with no restrictions
 def calc_closest_ball_without_directions(balls, closest_ball, closest_ball_distance, robot_center):
     for ball in balls:
         distance = math.sqrt((ball[0] - robot_center[0]) ** 2 + (ball[1] - robot_center[1]) ** 2)
